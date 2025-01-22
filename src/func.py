@@ -1,6 +1,7 @@
 import pygame
 import os
 import sys
+import random
 
 
 def terminate():
@@ -114,6 +115,10 @@ def map_generation(level): # Генерация карты
                         map_list[cell[0]][cell[1]] = room_generation(
                             map_list, level, how_many_rooms, i)
                         break
+
+    for i in range(len(map_list)):
+        for k in range(len(map_list[i])):
+            map_list[i][k] = [map_list[i][k], 'unvisited']
 
     return map_list
 # -------------------------------------------------------------------------
