@@ -9,8 +9,8 @@ def terminate():
     sys.exit()
 
 
-def load_image(name, colorkey=None):
-    fullname = os.path.join(r'data\pictures\main', name)
+def load_image(name, where, colorkey=None):
+    fullname = os.path.join(fr'data\pictures\{where}', name)
     # если файл не существует, то выходим
     if not os.path.isfile(fullname):
         print(f"Файл с изображением '{fullname}' не найден")
@@ -115,7 +115,7 @@ def map_generation(level): # Генерация карты
                         map_list[cell[0]][cell[1]] = room_generation(
                             map_list, level, how_many_rooms, i)
                         break
-
+    
     for i in range(len(map_list)):
         for k in range(len(map_list[i])):
             map_list[i][k] = [map_list[i][k], 'unvisited']
