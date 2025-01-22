@@ -2,6 +2,7 @@ import pygame
 import os
 import sys
 from func import load_image, terminate
+from game import *
 import sqlite3
 from InputBox import InputBox
 
@@ -60,7 +61,7 @@ class Button(pygame.sprite.Sprite):
     def __init__(self, a, dx, dy, x, y, group):
         super().__init__(group)
         self.button_type = a
-        self.image = load_image(self.button_type)
+        self.image = load_image(self.button_type, 'main')
         self.image = pygame.transform.scale(self.image, (dx, dy))
         self.rect = self.image.get_rect()
         self.rect.x = x
@@ -76,7 +77,7 @@ class Button(pygame.sprite.Sprite):
         # Действия при активации разных кнопок. Их отличают по названию картинки
         if args and args[0].type == pygame.MOUSEBUTTONDOWN and self.rect.collidepoint(args[0].pos):
             if self.button_type == 'game_start.png':
-                pass
+                start()
             elif self.button_type == 'training.png':
                 pass
             elif self.button_type == 'settings.png':
@@ -91,22 +92,22 @@ class Button(pygame.sprite.Sprite):
 
             elif self.button_type == 'sound1.png':
                 self.button_type = 'sound0.png'
-                self.image = load_image(self.button_type)
+                self.image = load_image(self.button_type, 'main')
                 self.image = pygame.transform.scale(self.image, self.rect.size)
                 settings_change('sound 0')
             elif self.button_type == 'sound0.png':
                 self.button_type = 'sound1.png'
-                self.image = load_image(self.button_type)
+                self.image = load_image(self.button_type, 'main')
                 self.image = pygame.transform.scale(self.image, self.rect.size)
                 settings_change('sound 1')
             elif self.button_type == 'musik1.png':
                 self.button_type = 'musik0.png'
-                self.image = load_image(self.button_type)
+                self.image = load_image(self.button_type, 'main')
                 self.image = pygame.transform.scale(self.image, self.rect.size)
                 settings_change('musik 0')
             elif self.button_type == 'musik0.png':
                 self.button_type = 'musik1.png'
-                self.image = load_image(self.button_type)
+                self.image = load_image(self.button_type, 'main')
                 self.image = pygame.transform.scale(self.image, self.rect.size)
                 settings_change('musik 1')
             elif self.button_type == 'confirm_settings.png':
@@ -135,7 +136,7 @@ def menu():
     # Отображение меню
     for i in button_group:
         i.kill()
-    fon = load_image('menu_fon.png')
+    fon = load_image('menu_fon.png', 'main')
     fon = pygame.transform.scale(fon, (900, 900))
     screen.blit(fon, (0, 0))
     for i in range(7):
