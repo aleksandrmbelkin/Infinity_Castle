@@ -23,22 +23,25 @@ buttons_settings = [('sound1.png', 200, 60, 330), ('musik1.png', 200, 60, 330)]
 button_group = pygame.sprite.Group()
 # Ник зарег. человека
 NICKNAME = ''
+names = ['forward', 'left', 'down', 'right', 'melee_weapon', 'magic_weapon', 'interaction', 'menu']
 
 
 def load_settings():
+    global SETTINGS
     # загрузка настроек из файла
+    SETTINGS = ['sound 1', 'musik 1', 'forward w', 'left a', 'down s', 'right d', 'melee_weapon q', 'magic_weapon e',
+                'interaction f', 'menu esc']
     try:
         test = open('settings.txt')
     except Exception:
         test = open('settings.txt', 'w+')
-        test.write('sound 1\n')
-        test.write('musik 1\n')
+        for i in SETTINGS:
+            test.write(i + '\n')
     test.seek(0)
     SETTINGS = []
     for i in test.readlines():
         SETTINGS.append(i.strip().split())
     test.close()
-    print(SETTINGS)
     for i in SETTINGS:
         if i[0] == 'sound':
             if i[1] == '1':
@@ -64,9 +67,12 @@ class Button(pygame.sprite.Sprite):
         self.rect.y = y
 
     def update(self, *args):
-        global inf
+        global NICKNAME
+        global input_box
         global input_box1
         global input_box2
+        global input_box1_regist
+        global input_box2_regist
         # Действия при активации разных кнопок. Их отличают по названию картинки
         if args and args[0].type == pygame.MOUSEBUTTONDOWN and self.rect.collidepoint(args[0].pos):
             if self.button_type == 'game_start.png':
@@ -103,11 +109,26 @@ class Button(pygame.sprite.Sprite):
                 self.image = load_image(self.button_type)
                 self.image = pygame.transform.scale(self.image, self.rect.size)
                 settings_change('musik 1')
-
+            elif self.button_type == 'confirm_settings.png':
+                for i in range(len(input_box)):
+                    settings_change(names[i] + ' ' + input_box[i].returning())
+            elif self.button_type == 'settings_reset.png':
+                os.remove('settings.txt')
+                load_settings()
             elif self.button_type == 'confirm.png':
                 account_check(input_box1.returning(),
                               input_box2.returning(),
-                              inf)
+                              'login')
+            elif self.button_type == 'confirm_regist.png':
+                account_check(input_box1_regist.returning(),
+                              input_box2_regist.returning(),
+                              'regist')
+            elif self.button_type == 'register.png':
+                account_regist()
+
+            elif self.button_type == 'account_leave.png':
+                NICKNAME = ''
+                account_login()
 
 
 def menu():
@@ -125,6 +146,7 @@ def menu():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+                terminate()
             button_group.update(event)
         button_group.draw(screen)
         pygame.display.flip()
@@ -133,20 +155,40 @@ def menu():
 
 
 def settings():
+    global input_box
     # Отображение настроек
     for i in button_group:
         i.kill()
     screen.fill('black')
     Button('back.png', 200, 70, 10, 10, button_group)
+    Button('confirm_settings.png', 200, 70, 330, 800, button_group)
+    Button('settings_reset.png', 200, 70, 600, 800, button_group)
     for i in range(2):
         Button(buttons_settings[i][0], buttons_settings[i][1], buttons_settings[i][2],
                buttons_settings[i][3], 70 + 70 * i, button_group)
+    input_box = []
+    font = pygame.font.Font(None, 30)
+    for i in range(8):
+        input_box.append(InputBox(330, 330 + 50 * i, 100, 40, text=SETTINGS[2 + i][1]))
     running = True
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+                terminate()
             button_group.update(event)
+            for i in input_box:
+                i.handle_event(event)
+        for i in input_box:
+            i.update()
+        screen.fill('black')
+        for i in range(8):
+            string_rendered = font.render(f'{names[i]}', 1, pygame.Color('white'))
+            rect_size = pygame.rect.Rect(170, 335 + 50 * i, 70, 40)
+            screen.blit(string_rendered, rect_size)
+        for i in input_box:
+            i.draw(screen)
+
         button_group.draw(screen)
         pygame.display.flip()
 
@@ -158,7 +200,6 @@ def account_login():
     global NICKNAME
     global input_box1
     global input_box2
-    global inf
     for i in button_group:
         i.kill()
     screen.fill('black')
@@ -172,17 +213,13 @@ def account_login():
         Button('account_ask.png', 200, 70, 350, 200, button_group)
         Button('confirm.png', 200, 70, 350, 500, button_group)
         Button('back.png', 200, 70, 10, 10, button_group)
-
-        db = sqlite3.connect("InfinityCastle_db")
-
-        cur = db.cursor()
-        inf = list(cur.execute('SELECT * FROM accounts').fetchall())
-        db.close()
+        Button('register.png', 200, 70, 350, 600, button_group)
 
         while running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
+                    terminate()
                 for box in input_boxes:
                     box.handle_event(event)
                 button_group.update(event)
@@ -201,12 +238,49 @@ def account_login():
         leader_board()
 
 
+def account_regist():
+    global input_box1_regist
+    global input_box2_regist
+
+    for i in button_group:
+        i.kill()
+    screen.fill('black')
+
+    Button('back.png', 200, 70, 10, 10, button_group)
+    Button('confirm_regist.png', 200, 70, 350, 450, button_group)
+    input_box1_regist = InputBox(350, 300, 140, 32)
+    input_box2_regist = InputBox(350, 400, 140, 32)
+    input_boxes = [input_box1_regist, input_box2_regist]
+
+    running = True
+
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+                terminate()
+            for box in input_boxes:
+                box.handle_event(event)
+            button_group.update(event)
+
+        for box in input_boxes:
+            box.update()
+
+        screen.fill('black')
+        for box in input_boxes:
+            box.draw(screen)
+
+        button_group.draw(screen)
+        pygame.display.flip()
+    pygame.quit()
+
+
 def leader_board():
     # отображение лидеров по пройденным этажам
     for i in button_group:
         i.kill()
     screen.fill('black')
-    db = sqlite3.connect("InfinityCastle_db")
+    db = sqlite3.connect("data\\InfinityCastle_db")
 
     cur = db.cursor()
     inf_level_board = list(cur.execute('SELECT accounts.nickname, leaderboard_level.level FROM'
@@ -215,7 +289,8 @@ def leader_board():
     db.close()
 
     Button('back.png', 200, 70, 10, 10, button_group)
-    
+    Button('account_leave.png', 200, 70, 600, 700, button_group)
+
     font = pygame.font.Font(None, 30)
     text_coord = 50
     i = 0
@@ -228,6 +303,10 @@ def leader_board():
         intro_rect.x = 350
         text_coord += intro_rect.height
         screen.blit(string_rendered, intro_rect)
+
+    name_render = font.render('Текущий аккаунт ' + NICKNAME, 1, pygame.Color('white'))
+    intro_rect = pygame.rect.Rect(10, 700, 200, 200)
+    screen.blit(name_render, intro_rect)
 
     while True:
         for event in pygame.event.get():
@@ -247,26 +326,45 @@ def settings_change(a):
         for i in range(len(aa)):
             if aa[i][0] == new_settings[0]:
                 aa[i][1] = new_settings[1]
+                break
     with open('settings.txt', 'w') as f:
         for i in aa:
             f.write(' '.join(i) + '\n')
     load_settings()
 
 
-def account_check(a, b, c):
-    # Проверка существования аккаунта по базе данных при входе
+def account_check(a, b, tip):
+
+    db = sqlite3.connect("data\\InfinityCastle_db")
+
+    cur = db.cursor()
+    inf = list(cur.execute('SELECT * FROM accounts').fetchall())
+    db.close()
+
+    # Проверка существования аккаунта по базе данных
     global NICKNAME
     status = False
-    for i in c:
+    status1 = False
+    for i in inf:
         if i[1] == a:
+            status1 = True
             if i[2] == b:
                 status = True
-    if status:
-        print('YES')
-        NICKNAME = a
-        leader_board()
-    else:
-        print('NO')
+    if tip == 'login':
+        if status:
+            NICKNAME = a
+            leader_board()
+    elif tip == 'regist':
+        if status1:
+            Button('taken_name.png', 200, 70, 350, 600, button_group)
+        else:
+            db = sqlite3.connect('data\\InfinityCastle_db')
+            cur = db.cursor()
+            cur.execute(f'INSERT INTO accounts(nickname, password) VALUES("{a}", "{b}")')
+            db.commit()
+            db.close()
+            NICKNAME = a
+            leader_board()
 
 
 if __name__ == '__main__':
