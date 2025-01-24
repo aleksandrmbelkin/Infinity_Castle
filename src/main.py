@@ -4,7 +4,7 @@ import sys
 from func import load_image, terminate
 from game import *
 import sqlite3
-from InputBox import InputBox
+from InputBox import InputBox, One_Symbol_InputBox
 
 
 pygame.init()
@@ -15,8 +15,8 @@ pygame.display.set_caption('Infinity Castle')
 clock = pygame.time.Clock()
 clock.tick(FPS)
 # Список с кнопками меню (картинка; ширина, высота, координата левого верхнего угла по x)
-buttons_menu = [('infinity.png', 200, 60, 330), ('castle.png', 200, 60, 330), ('game_start.png', 300, 60, 280),
-                ('training.png', 200, 60, 330), ('settings.png', 250, 60, 300), ('leader_board.png', 300, 60, 280),
+buttons_menu = [('infinity.png', 200, 75, 330), ('castle.png', 200, 65, 330), ('game_start.png', 300, 60, 280),
+                ('training.png', 210, 60, 330), ('settings.png', 250, 60, 300), ('leader_board.png', 300, 60, 280),
                 ('game_stop.png', 300, 60, 280)]
 # Список с кнопками, но уже для настроек
 buttons_settings = [('sound1.png', 200, 60, 330), ('musik1.png', 200, 60, 330)]
@@ -24,8 +24,8 @@ buttons_settings = [('sound1.png', 200, 60, 330), ('musik1.png', 200, 60, 330)]
 button_group = pygame.sprite.Group()
 # Ник зарег. человека
 NICKNAME = ''
-names = ['forward', 'left', 'down', 'right', 'melee_weapon', 'magic_weapon', 'interaction', 'menu']
-
+names = ['Вперёд', 'Налево', 'Вниз', 'Направо', 'Холодное оружие', 'Магическое оружие', 'Взаимодействие', 'Меню']
+names_eng = ['forward', 'left', 'down', 'right', 'melee_weapon', 'magic_weapon', 'interaction', 'menu']
 
 def load_settings():
     global SETTINGS
@@ -77,13 +77,19 @@ class Button(pygame.sprite.Sprite):
         # Действия при активации разных кнопок. Их отличают по названию картинки
         if args and args[0].type == pygame.MOUSEBUTTONDOWN and self.rect.collidepoint(args[0].pos):
             if self.button_type == 'game_start.png':
-                start()
+                if NICKNAME:
+                    start()
+                else:
+                    account_login()
             elif self.button_type == 'training.png':
                 pass
             elif self.button_type == 'settings.png':
                 settings()
             elif self.button_type == 'leader_board.png':
-                account_login()
+                if NICKNAME:
+                    leader_board()
+                else:
+                    account_login()
             elif self.button_type == 'game_stop.png':
                 terminate()
 
@@ -112,10 +118,14 @@ class Button(pygame.sprite.Sprite):
                 settings_change('musik 1')
             elif self.button_type == 'confirm_settings.png':
                 for i in range(len(input_box)):
-                    settings_change(names[i] + ' ' + input_box[i].returning())
+                    settings_change(names_eng[i] + ' ' + input_box[i].returning())
             elif self.button_type == 'settings_reset.png':
                 os.remove('settings.txt')
                 load_settings()
+                for i in range(len(input_box)):
+                    input_box[i].text = SETTINGS[2 + i][1]
+                    input_box[i].render()
+                    input_box[i].draw(screen)
             elif self.button_type == 'confirm.png':
                 account_check(input_box1.returning(),
                               input_box2.returning(),
@@ -170,7 +180,7 @@ def settings():
     input_box = []
     font = pygame.font.Font(None, 30)
     for i in range(8):
-        input_box.append(InputBox(330, 330 + 50 * i, 100, 40, text=SETTINGS[2 + i][1]))
+        input_box.append(One_Symbol_InputBox(330, 330 + 50 * i, 100, 40, text=SETTINGS[2 + i][1]))
     running = True
     while running:
         for event in pygame.event.get():
@@ -185,7 +195,7 @@ def settings():
         screen.fill('black')
         for i in range(8):
             string_rendered = font.render(f'{names[i]}', 1, pygame.Color('white'))
-            rect_size = pygame.rect.Rect(170, 335 + 50 * i, 70, 40)
+            rect_size = pygame.rect.Rect(130, 335 + 50 * i, 70, 40)
             screen.blit(string_rendered, rect_size)
         for i in input_box:
             i.draw(screen)
@@ -211,10 +221,10 @@ def account_login():
         input_boxes = [input_box1, input_box2]
         running = True
 
-        Button('account_ask.png', 200, 70, 350, 200, button_group)
-        Button('confirm.png', 200, 70, 350, 500, button_group)
+        Button('account_ask.png', 250, 60, 320, 200, button_group)
+        Button('confirm.png', 220, 70, 340, 500, button_group)
         Button('back.png', 200, 70, 10, 10, button_group)
-        Button('register.png', 200, 70, 350, 600, button_group)
+        Button('register.png', 220, 70, 340, 600, button_group)
 
         while running:
             for event in pygame.event.get():
@@ -236,7 +246,7 @@ def account_login():
             pygame.display.flip()
         pygame.quit()
     else:
-        leader_board()
+        menu()
 
 
 def account_regist():
@@ -290,7 +300,7 @@ def leader_board():
     db.close()
 
     Button('back.png', 200, 70, 10, 10, button_group)
-    Button('account_leave.png', 200, 70, 600, 700, button_group)
+    Button('account_leave.png', 300, 60, 580, 820, button_group)
 
     font = pygame.font.Font(None, 30)
     text_coord = 50
@@ -306,7 +316,7 @@ def leader_board():
         screen.blit(string_rendered, intro_rect)
 
     name_render = font.render('Текущий аккаунт ' + NICKNAME, 1, pygame.Color('white'))
-    intro_rect = pygame.rect.Rect(10, 700, 200, 200)
+    intro_rect = pygame.rect.Rect(10, 870, 200, 200)
     screen.blit(name_render, intro_rect)
 
     while True:
@@ -354,10 +364,12 @@ def account_check(a, b, tip):
     if tip == 'login':
         if status:
             NICKNAME = a
-            leader_board()
+            menu()
+        else:
+            Button('wrong_name_password.png', 410, 60, 250, 750, button_group)
     elif tip == 'regist':
         if status1:
-            Button('taken_name.png', 200, 70, 350, 600, button_group)
+            Button('taken_name.png', 300, 60, 300, 600, button_group)
         else:
             db = sqlite3.connect('data\\InfinityCastle_db')
             cur = db.cursor()
@@ -365,7 +377,7 @@ def account_check(a, b, tip):
             db.commit()
             db.close()
             NICKNAME = a
-            leader_board()
+            menu()
 
 
 if __name__ == '__main__':
