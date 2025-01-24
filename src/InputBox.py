@@ -20,7 +20,6 @@ class InputBox:
         if event.type == pg.MOUSEBUTTONDOWN:
             # Контроль: активно ли поле для ввода
             if self.rect.collidepoint(event.pos):
-                # Toggle the active variable.
                 self.active = not self.active
             else:
                 self.active = False
@@ -50,3 +49,33 @@ class InputBox:
 
     def returning(self):
         return self.text
+
+    def render(self):
+        self.txt_surface = FONT.render(self.text, True, self.color)
+
+
+class One_Symbol_InputBox(InputBox):
+    def init__(self, x, y, w, h, text=''):
+        super().__init__(x, y, w, h, text)
+
+    def handle_event(self, event):
+        if event.type == pg.MOUSEBUTTONDOWN:
+            # Контроль: активно ли поле для ввода
+            if self.rect.collidepoint(event.pos):
+                self.active = not self.active
+            else:
+                self.active = False
+            # Смена цвета при перемещении мыши от поля
+            self.color = COLOR_ACTIVE if self.active else COLOR_INACTIVE
+        if event.type == pg.KEYDOWN:
+            if self.active:
+                if event.key == pg.K_RETURN:
+                    self.text = ''
+                elif event.key == pg.K_BACKSPACE:
+                    self.text = self.text[:-1]
+                else:
+                    self.text += event.unicode
+                if len(self.text) > 1:
+                    self.text = self.text[-1]
+                # Рендер текста
+                self.txt_surface = FONT.render(self.text, True, self.color)
