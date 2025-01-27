@@ -143,6 +143,9 @@ class Button(pygame.sprite.Sprite):
 
 
 def menu():
+    # Музыка
+    pygame.mixer.music.load('data/music_and_sounds/music/menu')
+    pygame.mixer.music.play(-1)
     # Отображение меню
     for i in button_group:
         i.kill()
