@@ -52,8 +52,10 @@ def load_settings():
         elif i[0] == 'musik':
             if i[1] == '1':
                 buttons_settings[1] = ('musik1.png', 200, 60, 330)
+                pygame.mixer.music.set_volume(1)
             else:
                 buttons_settings[1] = ('musik0.png', 200, 60, 330)
+                pygame.mixer.music.set_volume(0)
 
 
 class Button(pygame.sprite.Sprite):
