@@ -73,8 +73,7 @@ def room_generation(map_list, level, how_many_rooms, i): # Выбор комна
                 return 'life_room'
 
 
-def map_generation(level): # Генерация карты
-    map_size = 4
+def map_generation(level, map_size): # Генерация карты
     how_many_rooms = random.randint(4, 7)
     map_list = [['no'] * map_size for _ in range(map_size)]
 
