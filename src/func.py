@@ -85,6 +85,8 @@ def map_generation(level, map_size): # Генерация карты
     else:
         map_list[cell[0]][cell[1]] = 'start'
 
+    start_cell = cell[::]
+
     # Генерация остальных комнат
     for i in range(how_many_rooms + 1):
         while True:
@@ -125,5 +127,5 @@ def map_generation(level, map_size): # Генерация карты
         for k in range(len(map_list[i])):
             map_list[i][k] = [map_list[i][k], 'unvisited']
 
-    return map_list
+    return map_list, start_cell
 # -------------------------------------------------------------------------
