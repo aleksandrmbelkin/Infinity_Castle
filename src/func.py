@@ -9,11 +9,13 @@ def terminate():
     sys.exit()
 
 
+SETTINGS = ['sound 1', 'musik 1', 'forward w', 'left a', 'down s', 'right d', 'melee_weapon q', 'magic_weapon e',
+                'interaction f', 'menu esc']
+
+
 def load_settings():
     global SETTINGS
     # загрузка настроек из файла
-    SETTINGS = ['sound 1', 'musik 1', 'forward w', 'left a', 'down s', 'right d', 'melee_weapon q', 'magic_weapon e',
-                'interaction f', 'menu esc']
     try:
         test = open('settings.txt')
     except Exception:
