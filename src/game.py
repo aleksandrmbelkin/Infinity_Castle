@@ -56,6 +56,7 @@ class Player(pygame.sprite.Sprite):
 
         self.width_player = 100
         self.height = 120
+        self.speed = 10
 
         self.animation_flag = False
         self.time_animation = 0
@@ -65,21 +66,21 @@ class Player(pygame.sprite.Sprite):
     def update(self):
         keys = pygame.key.get_pressed()
         if keys[pygame.K_w]:
-            if self.y_player - 3 >= 190:
-                self.y_player -= 5
+            if self.y_player - self.speed >= 190:
+                self.y_player -= self.speed
                 self.animation_flag = True
         elif keys[pygame.K_s]:
-            if self.y_player + self.height + 3 <= 765:
-                self.y_player += 5
+            if self.y_player + self.height + self.speed <= 765:
+                self.y_player += self.speed
                 self.animation_flag = True
         elif keys[pygame.K_a]:
-            if self.x_player - 3 >= 350:
-                self.x_player -= 5
+            if self.x_player - self.speed >= 350:
+                self.x_player -= self.speed
                 self.animation_flag = True
                 self.side_animation = 'left'
         elif keys[pygame.K_d]:
-            if self.x_player + self.width_player + 3 <= 1550:
-                self.x_player += 5
+            if self.x_player + self.width_player + self.speed <= 1550:
+                self.x_player += self.speed
                 self.animation_flag = True
                 self.side_animation = 'right'
         else:
