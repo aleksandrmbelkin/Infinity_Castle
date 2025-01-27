@@ -9,6 +9,35 @@ def terminate():
     sys.exit()
 
 
+def load_settings():
+    global SETTINGS
+    # загрузка настроек из файла
+    SETTINGS = ['sound 1', 'musik 1', 'forward w', 'left a', 'down s', 'right d', 'melee_weapon q', 'magic_weapon e',
+                'interaction f', 'menu esc']
+    try:
+        test = open('settings.txt')
+    except Exception:
+        test = open('settings.txt', 'w+')
+        for i in SETTINGS:
+            test.write(i + '\n')
+    test.seek(0)
+    SETTINGS = []
+    for i in test.readlines():
+        SETTINGS.append(i.strip().split())
+    test.close()
+    for i in SETTINGS:
+        if i[0] == 'sound':
+            if i[1] == '1':
+                pass
+            else:
+                pass
+        elif i[0] == 'musik':
+            if i[1] == '1':
+                pygame.mixer.music.set_volume(1)
+            else:
+                pygame.mixer.music.set_volume(0)
+
+
 def show_image(image, screen_game, where):
     im = load_image(f'{image[0]}.png', where)
     im = pygame.transform.scale(im, (image[3], image[4]))
