@@ -143,9 +143,6 @@ class Button(pygame.sprite.Sprite):
 
 
 def menu():
-    # Музыка
-    pygame.mixer.music.load('data/music_and_sounds/music/menu')
-    pygame.mixer.music.play(-1)
     # Отображение меню
     for i in button_group:
         i.kill()
@@ -384,6 +381,9 @@ def account_check(a, b, tip):
 
 
 if __name__ == '__main__':
+    # Музыка
+    pygame.mixer.music.load('data/music_and_sounds/music/menu.mp3')
+    pygame.mixer.music.play(-1)
     # Активация приложения
     load_settings()
     menu()
