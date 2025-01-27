@@ -9,6 +9,12 @@ def terminate():
     sys.exit()
 
 
+def show_image(image, screen_game, where):
+    im = load_image(f'{image[0]}.png', where)
+    im = pygame.transform.scale(im, (image[3], image[4]))
+    screen_game.blit(im, (image[1], image[2]))
+
+
 def load_image(name, where, colorkey=None):
     fullname = os.path.join(fr'data\pictures\{where}', name)
     # если файл не существует, то выходим
