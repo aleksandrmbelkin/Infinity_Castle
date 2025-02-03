@@ -80,6 +80,7 @@ class Button(pygame.sprite.Sprite):
         if args and args[0].type == pygame.MOUSEBUTTONDOWN and self.rect.collidepoint(args[0].pos):
             if self.button_type == 'game_start.png':
                 if NICKNAME:
+                    pygame.quit()
                     start()
                 else:
                     account_login()
