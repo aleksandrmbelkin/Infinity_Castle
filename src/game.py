@@ -3,35 +3,33 @@ import os
 from func import load_image, show_image, terminate
 from func import map_generation
 
+
+# Загрузка данных из настроек
 def load_settings():
     global SETTINGS
     # загрузка настроек из файла
-    SETTINGS = ['sound 1', 'musik 1', 'forward w', 'left a', 'down s', 'right d', 'melee_weapon q', 'magic_weapon e',
-                'interaction f', 'menu esc']
-    try:
-        test = open('settings.txt')
-    except Exception:
-        test = open('settings.txt', 'w+')
-        for i in SETTINGS:
-            test.write(i + '\n')
-    test.seek(0)
-    SETTINGS = []
-    for i in test.readlines():
-        SETTINGS.append(i.strip().split())
-    test.close()
-    for i in SETTINGS:
-        if i[0] == 'sound':
-            if i[1] == '1':
-                pass
-            else:
-                pass
-        elif i[0] == 'musik':
-            if i[1] == '1':
-                pygame.mixer.music.set_volume(1)
-            else:
-                pygame.mixer.music.set_volume(0)
+    # SETTINGS = ['sound 1', 'musik 1', 'forward w', 'left a', 'down s', 'right d', 'melee_weapon q', 'magic_weapon e',
+    #             'interaction f', 'menu esc']
 
-                
+    test = open('settings.txt')
+    test.seek(0)
+    SETTINGS = {}
+    for i in test.readlines():
+        line = (i.strip().split())
+        SETTINGS[line[0]] = line[1]
+    test.close()
+
+    if SETTINGS['sound'] == '1':
+        pass
+    else:
+        pass
+    if SETTINGS['musik'] == '1':
+        pygame.mixer.music.set_volume(0.25)
+    else:
+        pygame.mixer.music.set_volume(0)
+
+
+# Создание и выведение на экран интерфейса
 def interface():
     images = [['coin', 1330, 105, 70, 70], ['magic_frame', 1335, 860, 120, 120],
               ['magic_frame', 1495, 860, 120, 120], [
@@ -53,6 +51,15 @@ def interface():
         show_image(i, screen_game, 'interface')
 
 
+def check_cursor(cursor_rect):
+    cursor_x, cursor_y = pygame.mouse.get_pos()
+    if not cursor_rect.collidepoint(cursor_x, cursor_y):
+        # Если курсор вышел за границы, возвращаем его обратно
+        cursor_x = max(cursor_rect.left, min(cursor_x, cursor_rect.right))
+        cursor_y = max(cursor_rect.top, min(cursor_y, cursor_rect.bottom))
+        pygame.mouse.set_pos(cursor_x, cursor_y)
+
+# Обновление изменяемых характеристик героя
 def update_hp_mana_coins(*hp_states, **characteristics):
     coin_font = pygame.font.Font('data/shrifts/coins_shrift.ttf', 50)
     coin_text = coin_font.render(
@@ -82,19 +89,29 @@ def update_hp_mana_coins(*hp_states, **characteristics):
 
 
 class Player(pygame.sprite.Sprite):
+    # Инициализация начальных характеристик персонажа
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
-        self.x_player = 900
-        self.y_player = 480
-
-        self.width_player = 100
-        self.height_player = 120
-        self.speed = 10
+        self.x = 900
+        self.y = 350
+        self.width = 100
+        self.height = 120
+        self.speed = 15
 
         self.animation_flag = False
         self.time_animation = 0
         self.side_animation = 'right'
         self.walk_animation = 0
+
+        self.form = [f'{self.side_animation}/stop',
+                    self.x, self.y, self.width, 120]
+
+        self.image = load_image(f'{self.form[0]}.png', 'characters\main_hero')
+        self.image = pygame.transform.scale(self.image, (self.width, self.height))
+        self.rect = self.image.get_rect()
+        self.rect.x = self.x
+        self.rect.y = self.y
+
 
         self.characteristics = {'coins': 0,
                                 'hp': 4,
@@ -106,73 +123,157 @@ class Player(pygame.sprite.Sprite):
                           ['unfilled_cell_HP', 1219, 897, 60, 52],
                           ['loced_HP', 1235, 903, 30, 40]]
 
-    def update(self):
+    def movement(self):
+        # Перемещение
         keys = pygame.key.get_pressed()
-        if keys[pygame.K_w]:
-            if self.y_player - self.speed >= 190:
-                self.y_player -= self.speed
+        if keys[ord(SETTINGS['forward'])]:
+            if self.rect.y - self.speed >= 190:
+                self.rect.y -= self.speed
                 self.animation_flag = True
-        elif keys[pygame.K_s]:
-            if self.y_player + self.height_player + self.speed <= 765:
-                self.y_player += self.speed
+                if pygame.sprite.spritecollideany(self, all_objects):
+                    self.rect.y += self.speed
+        if keys[ord(SETTINGS['down'])]:
+            if self.rect.y + self.height + self.speed <= 765:
+                self.rect.y += self.speed
                 self.animation_flag = True
-        elif keys[pygame.K_a]:
-            if self.x_player - self.speed >= 350:
-                self.x_player -= self.speed
+                if pygame.sprite.spritecollideany(self, all_objects):
+                    self.rect.y -= self.speed
+        if keys[ord(SETTINGS['left'])]:
+            if self.rect.x - self.speed >= 350:
+                self.rect.x -= self.speed
                 self.animation_flag = True
                 self.side_animation = 'left'
-        elif keys[pygame.K_d]:
-            if self.x_player + self.width_player + self.speed <= 1550:
-                self.x_player += self.speed
+                if pygame.sprite.spritecollideany(self, all_objects):
+                    self.rect.x += self.speed
+        if keys[ord(SETTINGS['right'])]:
+            if self.rect.x + self.width + self.speed <= 1550:
+                self.rect.x += self.speed
                 self.animation_flag = True
                 self.side_animation = 'right'
-        else:
-            self.form = [f'{self.side_animation}/stop',
-                         self.x_player, self.y_player, self.width_player, 120]
-            self.animation_flag = False
-            self.time_animation = 0
+                if pygame.sprite.spritecollideany(self, all_objects):
+                    self.rect.x -= self.speed
 
+        # Смена анимации перемещения
         if self.animation_flag:
             self.form = [f'{self.side_animation}/walk_{self.walk_animation}',
-                         self.x_player, self.y_player, self.width_player, 120]
+                         self.rect.x, self.rect.y, self.width, 120]
             if self.time_animation == 2:
-                self.walk_animation = (self.walk_animation + 1) % 8
+                self.walk_animation = (self.walk_animation + 1) % 7
             self.time_animation = (self.time_animation + 1) % 3
 
-        for event in pygame.event.get():
-            if event.type == pygame.KEYUP:
-                if event.key == pygame.K_f:
-                    if self.x_player + self.width_player >= 1500 and 400 < self.y_player < 560:
-                        can = room.change_room_number('right')
-                        if can:
-                            self.x_player = 350
-                    elif self.x_player <= 400 and 400 < self.y_player < 550:
-                        can = room.change_room_number('left')
-                        if can:
-                            self.x_player = 1550 - self.width_player
-                    elif self.y_player + self.height_player >= 715 and 840 < self.x_player < 1000:
-                        can = room.change_room_number('down')
-                        if can:
-                            self.y_player = 190
-                    elif self.y_player <= 240 and 840 < self.x_player < 1000:
-                        can = room.change_room_number('up')
-                        if can:
-                            self.y_player = 765 - self.height_player
+            if not sounds['steps'].get_busy():
+                sounds['steps'].play(pygame.mixer.Sound('data/music_and_sounds/sounds/main_hero_sounds/steps.mp3'))
+        else:
+            # Анимация стояния на месте
+            self.form = [f'{self.side_animation}/stop',
+                         self.rect.x, self.rect.y, self.width, 120]
+            self.animation_flag = False
+            self.time_animation = 0
+            sounds['steps'].stop()
 
+        self.animation_flag = False
+    # Взаимодействия
+    def action(self, event):
+            if event.key == ord(SETTINGS['interaction']):
+                # Двери
+                can = False
+                if self.rect.x >= 1440 and 400 < self.rect.y < 560:
+                    can = room.change_room_number('right')
+                    if can:
+                        self.rect.x = 350
+                elif self.rect.x <= 360 and 400 < self.rect.y < 550:
+                    can = room.change_room_number('left')
+                    if can:
+                        self.rect.x = 1550 - self.width
+                elif self.rect.y >= 635 and 840 < self.rect.x < 1000:
+                    can = room.change_room_number('down')
+                    if can:
+                        self.rect.y = 190
+                elif self.rect.y <= 195 and 840 < self.rect.x < 1000:
+                    can = room.change_room_number('up')
+                    if can:
+                        self.rect.y = 765 - self.height
+
+                # Сундук
+                if room.this_room[0] == 'chest':
+                    if 770 < self.rect.x < 1100 and 340 < self.rect.y < 610:
+                        chest.animation_flag = True
+                        map_list[room.room_number[0]][room.room_number[1]][1] = 'used'
+
+                        
+
+            elif event.key == pygame.K_z:
+                print(self.rect.x, self.rect.y)
+
+
+        # Обновление изменяемых характеристик и картинки героя
+    def update(self):
         update_hp_mana_coins(*self.hp_states, **self.characteristics)
         show_image(self.form, screen_game, 'characters/main_hero')
 
 
+class Object(pygame.sprite.Sprite):
+    # строго вертикальный или строго горизонтальный отрезок
+    def __init__(self, image, where, x, y, width, height, max_animation):
+        pygame.sprite.Sprite.__init__(self)
+        self.animation_flag = False
+        self.animation = 0
+        self.max_animation = max_animation
+
+        self.image = image
+        self.where = where
+        self.width = width
+        self.height = height
+
+        self.image_fin = load_image(f'{image}{self.animation}.png', where)
+        self.image_fin = pygame.transform.scale(self.image_fin, (width, height))
+
+        self.rect = self.image_fin.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+
+        all_objects.add(self)
+    def update(self):
+        if self.animation_flag and self.animation < self.max_animation:
+            self.animation += 1
+
+            self.image_fin = load_image(f'{self.image}{self.animation}.png', self.where)
+            self.mask = pygame.mask.from_surface(self.image_fin)
+        show_image([f'{self.image}{self.animation}', self.rect.x, self.rect.y, self.width, self.height], screen_game, self.where)
+
+    
+
+
 class Room():
+    # Инициализация начальных сведений о комнатах
     def __init__(self, map_list, room_number):
-        self.em_room = ['empty_room', 280, 190, 1355, 660]
         self.room_number = room_number
         self.map_list = map_list
         self.map_size = len(map_list)
 
-    def create(self):
-        show_image(self.em_room, screen_game, 'map')
+        self.em_room = ['empty_room', 280, 190, 1355, 660]
 
+    # Генерация комнаты
+    def create(self):
+        # Пустая комната
+        show_image(self.em_room, screen_game, 'map')
+        self.this_room = self.map_list[self.room_number[0]][self.room_number[1]]
+
+        # Комната с сундуком
+        if self.this_room[0] == 'chest':
+            global chest
+            try:
+                if not chest in all_objects:
+                    if self.this_room[1] != 'used':
+                        chest = Object('chest_animation_', 'map/chest', 900, 450, 150, 150, 5)
+                    else:
+                        chest = Object('chest_animation_', 'map/chest', 900, 450, 150, 150, 5)
+                        chest.animation = 5
+            except:
+                chest = Object('chest_animation_', 'map/chest', 900, 450, 150, 150, 5)
+            chest.update()
+
+    # Проверка наличия комнаты в месте куда вы хотите перейти и изменение номера вашей комнаты
     def change_room_number(self, where):
         can = False
 
@@ -196,25 +297,42 @@ class Room():
                     self.map_list[self.room_number[0]][self.room_number[1] + 1][0] != 'no'):
                 self.room_number[1] += 1
                 can = True
+        
+        if can:
+            global all_objects
+            all_objects = pygame.sprite.Group()
 
+            if not sounds['door_open'].get_busy():
+                sounds['door_open'].play(pygame.mixer.Sound('data/music_and_sounds/sounds/map_sounds/door_open.mp3'))
+                                
         print(self.room_number)
         return can
 
-
+# Начало программы
 def start():
     global screen_game, room
+    global all_borders, all_objects
+    global sounds, map_list
+
     pygame.init()
+    # Создание экрана
     screen_game = pygame.display.set_mode((1920, 1080))
     pygame.display.set_caption('Infinity Castle')
-
-    # os.environ['SDL_VIDEO_CENTERED'] = '0'
 
     FPS = 60
     clock = pygame.time.Clock()
 
+    # Музыка
     pygame.mixer.music.load('data/music_and_sounds/music/game_standart.mp3')
     pygame.mixer.music.play(-1)
 
+    # Звуки
+    sounds = {}
+
+    sounds['steps'] = pygame.mixer.find_channel()
+    sounds['door_open'] = pygame.mixer.find_channel()
+
+    # Отрисовка интерфейса и генерация карты уровня
     interface()
     map_list, room_number = map_generation(level=1, map_size=4)
 
@@ -224,20 +342,38 @@ def start():
         print()
     print(room_number)
 
-    # all_sprites = pygame.sprite.Group()
+    # Группы спрайтов
+    all_borders = pygame.sprite.Group()
+    all_objects = pygame.sprite.Group()
+
+    # Спрайт игрока и создание переменной комнаты
     player = Player()
     room = Room(map_list, room_number)
 
+    # Курсор
+    cursor_rect = pygame.Rect(280, 190, 1355, 660)
+    cursor_x, cursor_y = cursor_rect.center
+    pygame.mouse.set_pos(cursor_x, cursor_y)
+
+    # Основной цикл
     running = True
     while running:
+        # Выход из программы
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
                 terminate()
 
+            if event.type == pygame.KEYUP:
+                player.action(event)
+
+        # Загрузка настроек, создание комнтаты, обновление персонажа
         load_settings()
+        check_cursor(cursor_rect)
         room.create()
+        player.movement()
         player.update()
+        all_borders.draw(screen_game)
 
         clock.tick(FPS)
         pygame.display.flip()
