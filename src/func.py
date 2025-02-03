@@ -125,7 +125,7 @@ def map_generation(level, map_size): # Генерация карты
     
     for i in range(len(map_list)):
         for k in range(len(map_list[i])):
-            map_list[i][k] = [map_list[i][k], 'unvisited']
+            map_list[i][k] = [map_list[i][k], 'unused', 'unvisited']
 
     return map_list, start_cell
 # -------------------------------------------------------------------------
