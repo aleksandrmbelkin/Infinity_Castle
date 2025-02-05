@@ -27,6 +27,7 @@ NICKNAME = ''
 names = ['Вперёд', 'Налево', 'Вниз', 'Направо', 'Холодное оружие', 'Магическое оружие', 'Взаимодействие', 'Меню']
 names_eng = ['forward', 'left', 'down', 'right', 'melee_weapon', 'magic_weapon', 'interaction', 'menu']
 
+
 def load_settings():
     global SETTINGS
     # загрузка настроек из файла
@@ -125,6 +126,7 @@ class Button(pygame.sprite.Sprite):
             elif self.button_type == 'settings_reset.png':
                 os.remove('settings.txt')
                 load_settings()
+                settings()
                 for i in range(len(input_box)):
                     input_box[i].text = SETTINGS[2 + i][1]
                     input_box[i].render()
