@@ -5,7 +5,6 @@ import pygame
 import os
 from func import load_image, show_image, terminate
 from func import map_generation
-from ending import end
 import math
 
 
@@ -134,6 +133,16 @@ class Button(pygame.sprite.Sprite):
                 pygame.quit()
                 os.system('python main.py')
                 sys.exit()
+            elif self.button_type == 'start_new_game.png':
+                pygame.quit()
+                os.system('python game.py')
+                sys.exit()
+            elif self.button_type == 'menu_back.png':
+                pygame.quit()
+                os.system('python main.py')
+                sys.exit()
+            elif self.button_type == 'game_stop.png':
+                terminate()
 
 
 class attack_rect(pygame.sprite.Sprite):
@@ -426,8 +435,7 @@ class Player(pygame.sprite.Sprite):
                 if i not in self.hitted:
                     self.characteristics['hp'] -= 1
                     self.hitted.append(i)
-        if self.characteristics['hp'] == 0:
-            pygame.quit()
+        if self.characteristics['hp'] <= 0:
             end()
 
 
@@ -544,12 +552,19 @@ def pause():
     sounds['steps'].stop()
     pausing = True
 
+
+def end():
+    global ending
+    sounds['steps'].stop()
+    ending = True
+
+
 # Начало программы
 def start():
     global screen_game, room
     global all_borders, all_objects
     global sounds, map_list
-    global running, pausing
+    global running, pausing, ending
     global pause_group, player_group
     global player
     global FIGHT, CANFIRE, CANMELEE
@@ -575,10 +590,22 @@ def start():
     sounds['door_open'] = pygame.mixer.find_channel()
     sounds['battle_start'] = pygame.mixer.find_channel()
 
+    # Начало меню конца
+    font = pygame.font.Font(None, 32)
+    text = ['Вы погибли, ваш путь окончен...', 'Количество пройденных этажей: ' + 'text']
+    text_coord = 200
+
+    button_end_group = pygame.sprite.Group()
+    Button('start_new_game.png', 300, 50, 800, 300, button_end_group)
+    Button('menu_back.png', 250, 50, 820, 360, button_end_group)
+    Button('game_stop.png', 250, 50, 820, 420, button_end_group)
+    # Конец меню конца
+
     points3 = Button('points3.png', 200, 100, 1670, 20, button_pause)
     cont = Button('continue.png', 300, 100, 800, 300, pause_group)
     menu_back = Button('menu_back.png', 300, 100, 800, 500, pause_group)
     pausing = False
+    ending = False
 
     # Отрисовка интерфейса и генерация карты уровня
     interface()
@@ -614,7 +641,13 @@ def start():
             if event.type == pygame.QUIT:
                 terminate()
 
-            if not pausing:
+            if pausing:
+                pause_group.update(event)
+
+            elif ending:
+                button_end_group.update(event)
+            else:
+                print(ending)
                 if event.type == pygame.KEYDOWN:
                     if event.unicode == SETTINGS['melee_weapon']:
                         player.melee_magic = 0
@@ -629,11 +662,24 @@ def start():
 
                 button_pause.update(event)
 
-            else:
-                pause_group.update(event)
-
         # Загрузка настроек, создание комнтаты, обновление персонажа
-        if not pausing:
+        if pausing:
+            pygame.draw.rect(screen_game, 'Black', (600, 200, 700, 500), 0)
+            pause_group.draw(screen_game)
+        elif ending:
+            pygame.draw.rect(screen_game, 'Black', (600, 200, 700, 500), 0)
+            button_end_group.draw(screen_game)
+            for line in text:
+                string_rendered = font.render(line, 1, pygame.Color('white'))
+                intro_rect = string_rendered.get_rect()
+                text_coord += 10
+                intro_rect.top = text_coord
+                intro_rect.x = 700
+                text_coord += intro_rect.height
+                screen_game.blit(string_rendered, intro_rect)
+            text_coord = 200
+
+        else:
             if len(usual_skeletons_group) == 0:
                 FIGHT = False
 
@@ -651,7 +697,7 @@ def start():
                 if time.process_time() - i.timeappear >= 0.3:
                     i.kill()
             load_settings()
-    #        check_cursor(cursor_rect)
+            #        check_cursor(cursor_rect)
             room.create()
             player.movement()
             player.update()
@@ -670,10 +716,6 @@ def start():
             attack_group.draw(screen_game)
             coins_group.draw(screen_game)
             attack_usual_skeleton_group.draw(screen_game)
-
-        else:
-            pygame.draw.rect(screen_game, 'Black', (600, 200, 700, 500), 0)
-            pause_group.draw(screen_game)
         clock.tick(FPS)
         pygame.display.flip()
 
