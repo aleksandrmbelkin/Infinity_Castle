@@ -5,7 +5,7 @@ from func import map_generation
 
 
 # Загрузка данных из настроек
-def load_settings():
+def load_settings(channels):
     global SETTINGS
     # загрузка настроек из файла
     # SETTINGS = ['sound 1', 'musik 1', 'forward w', 'left a', 'down s', 'right d', 'melee_weapon q', 'magic_weapon e',
@@ -20,9 +20,11 @@ def load_settings():
     test.close()
 
     if SETTINGS['sound'] == '1':
-        pass
+        for i in range(1, channels + 1):
+            pygame.mixer.Channel(i).set_volume(1)
     else:
-        pass
+        for i in range(1, channels + 1):
+            pygame.mixer.Channel(i).set_volume(0)
     if SETTINGS['musik'] == '1':
         pygame.mixer.music.set_volume(0.25)
     else:
@@ -88,12 +90,14 @@ def update_hp_mana_coins(*hp_states, **characteristics):
         show_image(hp_states[2], screen_game, 'interface')
 
 
-def show_main_text(main_font):
-    global text_tick, main_text
+def show_main_text(size):
+    global text_tick, main_text, text_coords
+
+    main_font = pygame.font.Font('data/shrifts/main_shrift.ttf', size)
 
     if text_tick < max_text_tick:
         final_main_text = main_font.render(main_text, False, (20, 20, 20))
-        screen_game.blit(final_main_text, (710, 110))
+        screen_game.blit(final_main_text, (text_coords[0], text_coords[1]))
         text_tick += 1
     else:
         main_text = ''
@@ -187,6 +191,10 @@ class Player(pygame.sprite.Sprite):
     # Взаимодействия
 
     def action(self, event):
+        global main_text, text_size
+        global text_tick, max_text_tick
+        global text_coords
+
         if event.key == ord(SETTINGS['interaction']):
             # Двери
             can = False
@@ -214,18 +222,40 @@ class Player(pygame.sprite.Sprite):
                     map_list[room.room_number[0]
                              ][room.room_number[1]][1] = 'used'
 
+            # Стартовая комната 1 уровня
             elif room.this_room[0] == 'door_start':
                 if self.rect.y <= 195 and 840 < self.rect.x < 1000:
-                    global main_text, text_tick, max_text_tick
                     main_text = 'Пути назад уже нет'
                     text_tick = 0
                     max_text_tick = 30
+                    text_size = 50
+                    text_coords = [710, 110]
             
+            # Конечная комната
             elif room.this_room[0] == 'end':
                 if self.rect.x >= 1240 and self.rect.y < 325:
-                    global level
-                    level += 1
-                    start()
+                    br = False
+                    visited = False
+                    for i in range(len(map_list)):
+                        for j in range(len(map_list[i])):
+                            if map_list[i][j][2] == 'unvisited' and map_list[i][j][0] != 'no':
+                                br = True
+                                break
+                        if br:
+                            break
+                    else:
+                        visited = True
+
+                    if visited:
+                        global level
+                        level += 1
+                        start()
+                    else:
+                        main_text = 'Нужно проверить все комнаты'
+                        text_tick = 0
+                        max_text_tick = 30
+                        text_size = 45
+                        text_coords = [630, 110]
 
         elif event.key == pygame.K_z:
             print(self.rect.x, self.rect.y)
@@ -317,7 +347,7 @@ class Room():
         if room.change_room_number('right', change=False):
             show_image(door_right, screen_game, 'map')
 
-        # Начальная комната игры
+        # Стартовая комната 1 уровня
         if self.this_room[0] == 'door_start':
             show_image(self.big_door, screen_game, 'map')
 
@@ -338,10 +368,11 @@ class Room():
                                900, 450, 150, 150, 5)
             chest.update()
 
+        # Стартовая комната
         elif self.this_room[0] == 'start':
             stairs_image = ['stairs/up', 1425, 275, 120, 120]
             show_image(stairs_image, screen_game, 'map')
-
+        # Конечная комната
         elif self.this_room[0] == 'end':
             global stairs
             stairs = Object('down_', 'map/stairs', 1350, 180, 200, 200, 0)
@@ -352,7 +383,6 @@ class Room():
     def change_room_number(self, where, change):
         global main_text
         can = False
-        main_text = ''
 
         if where == 'up':
             if (self.room_number[0] - 1 >= 0 and
@@ -376,14 +406,17 @@ class Room():
                 can = True
 
         if change and can and not room.fight_flag:
-            global all_objects
+            global all_objects, map_list
             all_objects = pygame.sprite.Group()
 
             if not pygame.mixer.Channel(sounds['door_open']).get_busy():
                 pygame.mixer.Channel(sounds['door_open']).play(pygame.mixer.Sound(
                     'data/music_and_sounds/sounds/map_sounds/door_open.mp3'))
+            
+            main_text = ''
             self.room_number[what[0]] += what[1]
-            print(self.room_number)
+            print(self.room_number, map_list[self.room_number[0]][self.room_number[1]][2])
+            map_list[self.room_number[0]][self.room_number[1]][2] = 'visited'
         return can
 
 # Начало программы
@@ -393,10 +426,14 @@ def start():
     global screen_game, room
     global all_objects, level
     global sounds, map_list
-    global main_text, text_tick, max_text_tick
+    global main_text,text_size
+    global text_tick, max_text_tick
+    global text_coords
 
     pygame.init()
-    pygame.mixer.init(frequency=44100, size=-16, channels=3, buffer=4096)
+    channels = 3
+    pygame.mixer.init(frequency=44100, size=-16, channels=channels, buffer=4096)
+
     # Создание экрана
     screen_game = pygame.display.set_mode((1920, 1080))
     pygame.display.set_caption('Infinity Castle')
@@ -411,11 +448,12 @@ def start():
     FPS = 60
     clock = pygame.time.Clock()
 
-    # Текст и шрифт сверху
-    main_font = pygame.font.Font('data/shrifts/main_shrift.ttf', 50)
+    # Текст сверху
     main_text = ''
     text_tick = 0
     max_text_tick = 0
+    text_size = 0
+    text_coords = 0
 
     # Музыка
     pygame.mixer.music.load('data/music_and_sounds/music/game_standart.mp3')
@@ -452,8 +490,7 @@ def start():
         player.rect.y = 280
 
     room = Room(map_list, room_number)
-
-    # Координаты игрока
+    map_list[room.room_number[0]][room.room_number[1]][2] = 'visited'
 
     # Курсор
     cursor_rect = pygame.Rect(380, 280, 1150, 470)
@@ -477,7 +514,7 @@ def start():
                 check_cursor(cursor_rect)  # Ограничение курсора
 
         interface() # Загрузка интерфейса
-        load_settings()  # Загрузка настроек
+        load_settings(channels)  # Загрузка настроек
         room.create()  # Создание комнаты
 
         player.movement()  # Движение игрока
@@ -485,7 +522,8 @@ def start():
 
         # Обновление экрана сверху
         if main_text != '':
-            show_main_text(main_font)
+            if not(main_text == 'Пути назад уже нет' and map_list[room.room_number[0]][room.room_number[1]][0] != 'door_start'): 
+                show_main_text(text_size)
 
         screen_game.blit(pygame.font.Font('data/shrifts/main_shrift.ttf', 60).render(
             f'Уровень: {level}', False, (20, 20, 20)), (1350, 880))
