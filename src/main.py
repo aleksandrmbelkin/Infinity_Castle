@@ -81,6 +81,8 @@ class Button(pygame.sprite.Sprite):
             if self.button_type == 'game_start.png':
                 if NICKNAME:
                     pygame.quit()
+                    global level
+                    level = 1
                     start()
                 else:
                     account_login()
