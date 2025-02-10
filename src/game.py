@@ -309,7 +309,7 @@ class Player(pygame.sprite.Sprite):
                         map_list[room.room_number[0]][room.room_number[1]][1] = 'used'
                         chance = random.random()
 
-                        if chance < 1:
+                        if chance < 0.33:
                             if chance < 0.16:
                                 player.characteristics['unlocked_mana'] += 25
                                 player.characteristics['mana'] += 25
