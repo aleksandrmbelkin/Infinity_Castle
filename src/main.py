@@ -27,7 +27,6 @@ NICKNAME = ''
 names = ['Вперёд', 'Налево', 'Вниз', 'Направо', 'Холодное оружие', 'Магическое оружие', 'Взаимодействие', 'Меню']
 names_eng = ['forward', 'left', 'down', 'right', 'melee_weapon', 'magic_weapon', 'interaction', 'menu']
 
-
 def load_settings():
     global SETTINGS
     # загрузка настроек из файла
@@ -100,10 +99,7 @@ class Button(pygame.sprite.Sprite):
                 terminate()
 
             elif self.button_type == 'back.png':
-                if START:
-                    account_login()
-                else:
-                    menu()
+                menu()
 
             elif self.button_type == 'sound1.png':
                 self.button_type = 'sound0.png'
@@ -131,7 +127,6 @@ class Button(pygame.sprite.Sprite):
             elif self.button_type == 'settings_reset.png':
                 os.remove('settings.txt')
                 load_settings()
-                settings()
                 for i in range(len(input_box)):
                     input_box[i].text = SETTINGS[2 + i][1]
                     input_box[i].render()
@@ -234,8 +229,7 @@ def account_login():
 
         Button('account_ask.png', 250, 60, 320, 200, button_group)
         Button('confirm.png', 220, 70, 340, 500, button_group)
-        if not START:
-            Button('back.png', 200, 70, 10, 10, button_group)
+        Button('back.png', 200, 70, 10, 10, button_group)
         Button('register.png', 220, 70, 340, 600, button_group)
 
         while running:
@@ -357,7 +351,7 @@ def settings_change(a):
 
 
 def account_check(a, b, tip):
-    global START
+
     db = sqlite3.connect("data\\InfinityCastle_db")
 
     cur = db.cursor()
@@ -369,19 +363,18 @@ def account_check(a, b, tip):
     status = False
     status1 = False
     for i in inf:
-        if i[1] == a and a != '':
+        if i[1] == a:
             status1 = True
             if i[2] == b:
                 status = True
     if tip == 'login':
         if status:
             NICKNAME = a
-            START = True
             menu()
         else:
             Button('wrong_name_password.png', 410, 60, 250, 750, button_group)
     elif tip == 'regist':
-        if status1 or a == '':
+        if status1:
             Button('taken_name.png', 300, 60, 300, 600, button_group)
         else:
             db = sqlite3.connect('data\\InfinityCastle_db')
@@ -390,15 +383,13 @@ def account_check(a, b, tip):
             db.commit()
             db.close()
             NICKNAME = a
-            START = False
             menu()
 
 
 if __name__ == '__main__':
-    START = True
     # Музыка
     pygame.mixer.music.load('data/music_and_sounds/music/menu.mp3')
     pygame.mixer.music.play(-1)
     # Активация приложения
     load_settings()
-    account_login()
+    menu()
