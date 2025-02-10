@@ -128,7 +128,7 @@ class Player(pygame.sprite.Sprite):
         self.rect.x = self.x
         self.rect.y = self.y
 
-        self.characteristics = {'coins': 0,
+        self.characteristics = {'coins': 999,
                                 'hp': 4,
                                 'unlocked_hp': 4,
                                 'mana': 50,
@@ -217,10 +217,13 @@ class Player(pygame.sprite.Sprite):
 
             # Сундук
             if room.this_room[0] == 'chest':
-                if 770 < self.rect.x < 1100 and 340 < self.rect.y < 630:
+                if 770 < self.rect.x < 1100 and 320 < self.rect.y < 630:
                     chest.animation_flag = True
-                    map_list[room.room_number[0]
-                             ][room.room_number[1]][1] = 'used'
+                    if map_list[room.room_number[0]][room.room_number[1]][1] != 'used':
+                        map_list[room.room_number[0]][room.room_number[1]][1] = 'used'
+                        if not pygame.mixer.Channel(sounds['diffrent']).get_busy():
+                            pygame.mixer.Channel(sounds['diffrent']).play(pygame.mixer.Sound(
+                                'data/music_and_sounds/sounds/map_sounds/chest_open.mp3'))
 
             # Стартовая комната 1 уровня
             elif room.this_room[0] == 'door_start':
@@ -256,6 +259,91 @@ class Player(pygame.sprite.Sprite):
                         max_text_tick = 30
                         text_size = 45
                         text_coords = [630, 110]
+
+            # Аркадная комната
+            elif room.this_room[0] == 'arcada':
+                if 790 < self.rect.x < 1065 and 285 < self.rect.y < 620:
+                    if not pygame.mixer.Channel(sounds['diffrent']).get_busy() and not pygame.mixer.Channel(sounds['diffrent']).get_busy():
+                        if player.characteristics['coins'] < 10:
+                            main_text = 'У вас недостаточно средств!'
+                            text_tick = 0
+                            max_text_tick = 25
+                            text_size = 45
+                            text_coords = [650, 110]
+
+                        else:
+                            player.characteristics['coins'] -= 10
+                            
+                            chance = random.random()
+                            if chance < 0.55:
+                                pygame.mixer.Channel(sounds['diffrent']).play(pygame.mixer.Sound('data/music_and_sounds/sounds/map_sounds/automat/loss.mp3'))
+                                main_text = 'Упс, не повезло!'
+                                text_tick = 0
+                                max_text_tick = 17
+                                text_size = 55
+                                text_coords = [770, 110]
+                            else:
+                                pygame.mixer.Channel(sounds['diffrent']).play(pygame.mixer.Sound('data/music_and_sounds/sounds/map_sounds/automat/victory.mp3'))
+                                main_text = 'Вы выиграли!'
+                                text_tick = 0
+                                max_text_tick = 30
+                                text_size = 55
+                                text_coords = [790, 110]
+
+                                if 0.55 <= chance < 0.7:
+                                    pass # 30 монет
+                                if 0.7 <= chance < 0.8:
+                                    pass # Оружие
+                                if 0.8 <= chance < 0.9:
+                                    pass # Магия
+                                if 0.9 <= chance < 1:
+                                    pass # Зелье
+
+
+            elif room.this_room[0] == 'life_room':
+                if map_list[room.room_number[0]][room.room_number[1]][1] != 'used':
+                    if ((395 <= self.rect.x <= 605 and 430 <= self.rect.y <= 565) or 
+                        (590 <= self.rect.x <= 810 and 190 <= self.rect.y <= 325) or 
+                        (800 <= self.rect.x <= 1010 and 445 <= self.rect.y <= 565)):
+
+                        map_list[room.room_number[0]][room.room_number[1]][1] = 'used'
+                        chance = random.random()
+
+                        if chance < 1:
+                            if chance < 0.16:
+                                player.characteristics['unlocked_mana'] += 25
+                                player.characteristics['mana'] += 25
+                            elif 0.16 <= chance < 0.33:
+                                player.characteristics['unlocked_hp'] += 1
+                                player.characteristics['hp'] += 1
+                            
+                            main_text = 'Повезло...'
+                            text_tick = 0
+                            max_text_tick = 30
+                            text_size = 55
+                            text_coords = [860, 110]
+
+                        else:
+                            if 0.33 <= chance < 0.66:
+                                player.characteristics['unlocked_mana'] -= 25
+                                if player.characteristics['mana'] > player.characteristics['unlocked_mana']:
+                                    player.characteristics['mana'] = player.characteristics['unlocked_mana']
+                            elif 0.66 <= chance < 1:
+                                player.characteristics['unlocked_hp'] -= 1
+                                if player.characteristics['hp'] > player.characteristics['unlocked_hp']:
+                                    player.characteristics['hp'] = player.characteristics['unlocked_hp']
+                            
+                            main_text = 'Не повезло)'
+                            text_tick = 0
+                            max_text_tick = 30
+                            text_size = 55
+                            text_coords = [840, 110]
+                        
+                        pygame.mixer.Channel(sounds['diffrent']).play(pygame.mixer.Sound(
+                                'data/music_and_sounds/sounds/map_sounds/storm.mp3'))
+
+                        
+
 
         elif event.key == pygame.K_z:
             print(self.rect.x, self.rect.y)
@@ -299,9 +387,6 @@ class Object(pygame.sprite.Sprite):
 
             self.image_fin = load_image(
                 f'{self.image}{self.animation}.png', self.where)
-            if not pygame.mixer.Channel(sounds['chest_open']).get_busy():
-                pygame.mixer.Channel(sounds['chest_open']).play(pygame.mixer.Sound(
-                    'data/music_and_sounds/sounds/map_sounds/chest_open.mp3'))
         show_image([f'{self.image}{self.animation}', self.rect.x,
                    self.rect.y, self.width, self.height], screen_game, self.where)
 
@@ -327,6 +412,7 @@ class Room():
         show_image(self.em_room, screen_game, 'map')
         self.this_room = self.map_list[self.room_number[0]][self.room_number[1]]
         
+        # Двери
         if self.fight_flag:
             door_state = 'close'
         else:
@@ -363,7 +449,7 @@ class Room():
                         chest = Object('chest_animation_',
                                        'map/chest', 900, 450, 150, 150, 5)
                         chest.animation = 5
-            except:
+            except Exception:
                 chest = Object('chest_animation_', 'map/chest',
                                900, 450, 150, 150, 5)
             chest.update()
@@ -372,12 +458,76 @@ class Room():
         elif self.this_room[0] == 'start':
             stairs_image = ['stairs/up', 1425, 275, 120, 120]
             show_image(stairs_image, screen_game, 'map')
+            
         # Конечная комната
         elif self.this_room[0] == 'end':
-            global stairs
-            stairs = Object('down_', 'map/stairs', 1350, 180, 200, 200, 0)
+            try:
+                if not stairs in all_objects:
+                    pass
+            except Exception:
+                stairs = Object('down_', 'map/stairs', 1350, 180, 200, 200, 0)
             stairs.update()
 
+        # Аркадная комната
+        elif self.this_room[0] == 'arcada':
+            try:
+                if not automat in all_objects:
+                    pass
+            except Exception:
+                automat = Object('arсada_', 'map', 905, 420, 150, 200, 0)
+            automat.update()
+
+        elif room.this_room[0] == 'life_room':
+            try:
+                if not death in all_objects:
+                    pass
+            except Exception:
+                death = Object('death_com_', 'map/life_room', 1120, 230, 300, 240, 0)
+                table_1 = Object('table_', 'map', 500, 520, 100, 100, 0)
+                table_2 = Object('table_', 'map', 700, 285, 100, 100, 0)
+                table_3 = Object('table_', 'map', 900, 520, 100, 100, 0)
+                dark_sphere_1 = Object('dark_sphere_', 'map/life_room', 513, 515, 70, 70, 0)
+                dark_sphere_2 = Object('dark_sphere_', 'map/life_room', 713, 280, 70, 70, 0)
+                dark_sphere_3 = Object('dark_sphere_', 'map/life_room', 913, 515, 70, 70, 0)
+
+            if room.this_room[1] != 'used':
+                death.update()
+
+                table_1.update()
+                table_2.update()
+                table_3.update()
+
+                dark_sphere_1.update()
+                dark_sphere_2.update()
+                dark_sphere_3.update()
+            else:
+                table_1.update()
+                table_2.update()
+                table_3.update()
+
+        elif room.this_room[0] == 'shop':
+            trader = Object('shop_', 'map/traders', 1170, 370, 240, 200, 0)
+
+            table_1 = Object('table_', 'map', 500, 520, 100, 100, 0)
+            table_2 = Object('table_', 'map', 700, 285, 100, 100, 0)
+            table_3 = Object('table_', 'map', 900, 520, 100, 100, 0)
+            
+            trader.update()
+            table_1.update()
+            table_2.update()
+            table_3.update()
+
+        elif room.this_room[0] == 'upgrade_shop':
+            trader = Object('upgrade_shop_', 'map/traders', 1170, 370, 240, 200, 0)
+
+            table_1 = Object('table_', 'map', 500, 520, 100, 100, 0)
+            table_2 = Object('table_', 'map', 700, 285, 100, 100, 0)
+            table_3 = Object('table_', 'map', 900, 520, 100, 100, 0)
+
+            trader.update()
+            table_1.update()
+            table_2.update()
+            table_3.update()
 
     # Проверка наличия комнаты в месте куда вы хотите перейти и изменение номера вашей комнаты
     def change_room_number(self, where, change):
@@ -428,7 +578,7 @@ def start():
     global sounds, map_list
     global main_text,text_size
     global text_tick, max_text_tick
-    global text_coords
+    global text_coords, player
 
     pygame.init()
     channels = 3
@@ -468,7 +618,7 @@ def start():
     sounds['door_open'] = 2
     pygame.mixer.Channel(2)
 
-    sounds['chest_open'] = 3
+    sounds['diffrent'] = 3
     pygame.mixer.Channel(3)
 
     # Генерация карты уровня
@@ -526,7 +676,7 @@ def start():
                 show_main_text(text_size)
 
         screen_game.blit(pygame.font.Font('data/shrifts/main_shrift.ttf', 60).render(
-            f'Уровень: {level}', False, (20, 20, 20)), (1350, 880))
+            f'Уровень: {level}', False, (20, 20, 20)), (1340, 880))
 
         clock.tick(FPS)
         pygame.display.flip()
