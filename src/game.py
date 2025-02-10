@@ -148,12 +148,11 @@ class Button(pygame.sprite.Sprite):
 class attack_rect(pygame.sprite.Sprite):
     def __init__(self, x, y, k, player):
         super().__init__(attack_group)
-        if player.melee1 == 'usual_sword':
-            x += 25
-            x += 50 * k
-            self.image = pygame.Surface((50, 100), pygame.SRCALPHA, 32)
-            # Отображение хит-бокса pygame.draw.rect(self.image, pygame.Color('Black'), (0, 0, 50, 100))
-            self.rect = pygame.Rect(x, y, 50 * k, 100)
+        x += 25
+        x += 50 * k
+        self.image = pygame.Surface((50, 100), pygame.SRCALPHA, 32)
+        pygame.draw.rect(self.image, pygame.Color('Black'), (0, 0, 50, 100))
+        self.rect = pygame.Rect(x, y, 50 * k, 100)
         self.timeappear = time.process_time()
 
 
@@ -202,15 +201,13 @@ class usual_skeleton(pygame.sprite.Sprite):
     def update(self, *args, **kwargs):
         global player, player_group
         if pygame.sprite.spritecollide(self, magic_group, False):
-            if player.magic1 == 'usual_fireball':
-                self.hp -= 10
+            self.hp -= player.magic1['damage']
             for i in pygame.sprite.spritecollide(self, magic_group, False):
                 i.kill()
         if pygame.sprite.spritecollide(self, attack_group, False):
             i = pygame.sprite.spritecollide(self, attack_group, False)[0]
             if i not in self.hitted:
-                if player.melee1 == 'usual_sword':
-                    self.hp -= 20
+                self.hp -= player.melee1['damage']
                 self.hitted.append(i)
         if pygame.sprite.spritecollideany(self, player_group) and self.canmelee:
             attack_rect_usual_skeleton(self.rect.x, self.rect.y, 1)
@@ -268,14 +265,11 @@ class Player(pygame.sprite.Sprite):
         self.walk_animation = 0
 
         # Стандартные оружия
-        self.melee1 = 'usual_sword'
-        self.melee2 = 'usual_hammer'
-        self.magic1 = 'usual_fireball'
-        self.magic2 = 'usual_thunderbolt'
+        self.melee1 = melee_weapons['usual_sword']
+        self.magic1 = magic_weapons['usual_fireball']
 
         # Выбранное оружие (0 - первое, 1 - второе)
         self.melee_magic = 1
-        self.first_second = 0
 
         # Последнее время атаки
         self.lastfire = -5
@@ -383,6 +377,8 @@ class Player(pygame.sprite.Sprite):
                     i.kill()
                 for i in attack_group:
                     i.kill()
+                for i in coins_group:
+                    i.kill()
             # Сундук
             if room.this_room[0] == 'chest':
                 if 770 < self.rect.x < 1100 and 340 < self.rect.y < 610:
@@ -394,26 +390,22 @@ class Player(pygame.sprite.Sprite):
 
     def attack(self, event):
         global CANFIRE, CANMELEE
-        print(self.side_animation)
         if self.side_animation == 'right':
             k = 1
         else:
             k = -1
         if self.melee_magic == 0:
-            if self.melee1 == 'usual_sword':
-                if CANMELEE:
-                    attack_rect(self.rect.x, self.rect.y, k, self)
-                    CANMELEE = False
-                    self.lastmelee = time.process_time()
+            if CANMELEE:
+                self.melee1['hitbox_type'](self.rect.x, self.rect.y, k, self)
+                CANMELEE = False
+                self.lastmelee = time.process_time()
 
         else:
-            if self.first_second == 0:
-                if self.magic1 == 'usual_fireball':
-                    if CANFIRE and self.characteristics['mana'] >= 5:
-                        fireball(self.rect.x, self.rect.y, event.pos[0], event.pos[1])
-                        CANFIRE = False
-                        self.characteristics['mana'] -= 5
-                        self.lastfire = time.process_time()
+            if CANFIRE and self.characteristics['mana'] >= self.magic1['mana']:
+                self.magic1['type'](self.rect.x, self.rect.y, event.pos[0], event.pos[1])
+                CANFIRE = False
+                self.characteristics['mana'] -= self.magic1['mana']
+                self.lastfire = time.process_time()
 
     # Обновление изменяемых характеристик и картинки героя
     def update(self):
@@ -559,6 +551,35 @@ def end():
     ending = True
 
 
+# class weapon_on_ground:
+#    def __init__(self, x, y, name, melee_or_not):
+#        super().__init__(all_objects)
+#        if melee_or_not:
+#            self.image = load_image(name, r'weapon\edged_weapons')
+#        else:
+#            self.image = load_image(name, r'weapon\magic')
+#        self.rect = self.image.get_rect()
+#        self.rect.x = x
+#        self.rect.y = y
+#
+#    def update(self, *args, **kwargs):
+#        global player_group, player
+#        if pygame.sprite.spritecollide(self, player_group, False):
+#            self.kill()
+
+
+# Типы оружия
+melee_weapons = {
+    'usual_sword': {'damage': 20, 'CANMELEE': 0.1, 'hitbox_type': attack_rect, 'hitboxtime': 0.1, 'picture': 'usual_sword.png'},
+    'usual_hammer': {'damage': 40, 'CANMELEE': 1, 'hitbox_type': 'NEED', 'hitboxtime': 0.3, 'picture': 'usual_hammer.png'}
+}
+
+magic_weapons = {
+    'usual_fireball': {'damage': 5, 'CANMELEE': 0.5, 'type': fireball, 'mana': 5, 'picture': 'fireball.png'},
+    'usual_thunderbolt': {'damage': 15, 'CANMELEE': 0.3, 'type': 'NEED', 'mana': 10, 'picture': 'thunderbolt.png'}
+}
+
+
 # Начало программы
 def start():
     global screen_game, room
@@ -633,6 +654,7 @@ def start():
     Border(300, 200, 300, height - 250)  # вертик
     Border(width - 300, 200, width - 300, height - 250)  # вертик
     usual_skeleton()
+#    weapon_on_ground(500, 500, 'usual_hammer', True)
     # Основной цикл
     running = True
     while running:
@@ -642,6 +664,9 @@ def start():
                 terminate()
 
             if pausing:
+                if event.type == pygame.KEYDOWN:
+                    if event.unicode == SETTINGS['menu']:
+                        pausing = False
                 pause_group.update(event)
 
             elif ending:
@@ -655,6 +680,8 @@ def start():
                     if event.unicode == SETTINGS['magic_weapon']:
                         player.melee_magic = 1
                         print('b')
+                    if event.unicode == SETTINGS['menu']:
+                        pause()
                 if event.type == pygame.KEYUP:
                     player.action(event)
                 if event.type == pygame.MOUSEBUTTONDOWN:
@@ -683,15 +710,15 @@ def start():
             if len(usual_skeletons_group) == 0:
                 FIGHT = False
 
-            if time.process_time() - player.lastfire >= 2:
+            if time.process_time() - player.lastfire >= player.magic1['CANMELEE']:
                 CANFIRE = True
-            if time.process_time() - player.lastmelee >= 0.1:
+            if time.process_time() - player.lastmelee >= player.melee1['CANMELEE']:
                 CANMELEE = True
             for i in usual_skeletons_group:
                 if time.process_time() - i.lastmelee >= 1:
                     i.canmelee = True
             for i in attack_group:
-                if time.process_time() - i.timeappear >= 0.3:
+                if time.process_time() - i.timeappear >= 0.1:
                     i.kill()
             for i in attack_usual_skeleton_group:
                 if time.process_time() - i.timeappear >= 0.3:
