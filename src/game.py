@@ -25,6 +25,7 @@ def load_settings(channels):
     else:
         for i in range(1, channels + 1):
             pygame.mixer.Channel(i).set_volume(0)
+            
     if SETTINGS['musik'] == '1':
         pygame.mixer.music.set_volume(0.25)
     else:
