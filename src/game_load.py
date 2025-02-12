@@ -16,9 +16,7 @@ class Object(pygame.sprite.Sprite):
         self.width = width
         self.height = height
 
-        self.image_fin = load_image(f'{image}{self.animation}.png', where)
-        self.image_fin = pygame.transform.scale(
-            self.image_fin, (width, height))
+        self.image_fin = load_im([f'{image}{self.animation}', self.width, self.height], where)
 
         self.rect = self.image_fin.get_rect()
         self.rect.x = x
@@ -27,13 +25,10 @@ class Object(pygame.sprite.Sprite):
     def update(self):
         if self.animation_flag and self.animation < self.max_animation:
             self.animation += 1
-        
-            self.image_fin = load_image(f'{self.image}{self.animation}.png', self.where)
-            self.image_fin = pygame.transform.scale(self.image_fin, (self.width, self.height))
+            self.image_fin = load_im([f'{self.image}{self.animation}', self.width, self.height], self.where)
 
     def used(self):
-        self.image_fin = load_image(f'{self.image}{self.max_animation}.png', self.where)
-        self.image_fin = pygame.transform.scale(self.image_fin, (self.width, self.height))
+        self.image_fin = load_im([f'{self.image}{self.max_animation}', self.width, self.height], self.where)
 
         
 def load_im(im, where):
@@ -48,12 +43,6 @@ def load_im(im, where):
     image = pygame.transform.scale(image, (im[1], im[2]))
     return image
 
-
-pygame.init()
-
-# Создание экрана
-screen_game = pygame.display.set_mode((1920, 1080))
-pygame.display.set_caption('Infinity Castle')
 
 # Поля для монет и маны
 field_for_coin_long = load_im(['field_for_coin', 250, 60], 'interface')
