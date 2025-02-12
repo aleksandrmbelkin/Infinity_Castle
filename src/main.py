@@ -1,6 +1,5 @@
 import pygame
 import os
-import sys
 from func import load_image, terminate
 from game import *
 import sqlite3
