@@ -1,7 +1,8 @@
 import pygame
 import random
-from func import load_image, show_image, terminate
+from func import load_image, terminate
 from func import map_generation
+from game_load import *
 
 
 # Загрузка данных из настроек
@@ -44,8 +45,10 @@ def interface():
     pygame.draw.rect(screen_game, pygame.Color('black'), (275, 185, 1365, 670))
     pygame.draw.rect(screen_game, pygame.Color('white'), (280, 190, 1355, 660))
 
-    for i in images:
-        show_image(i, screen_game, 'interface')
+    for image in images:
+        im = load_image(f'{image[0]}.png', 'interface')
+        im = pygame.transform.scale(im, (image[3], image[4]))
+        screen_game.blit(im, (image[1], image[2]))
 
 
 def check_cursor(cursor_rect):
@@ -58,10 +61,9 @@ def check_cursor(cursor_rect):
 
 
 # Обновление изменяемых характеристик героя
-def update_hp_mana_coins(*hp_states, **characteristics):
-    show_image(['field_for_coin', 1420, 110, 200, 60],
-               screen_game, 'interface')
-    show_image(['field_for_coin', 370, 110, 250, 60], screen_game, 'interface')
+def update_hp_mana_coins(**characteristics):
+    screen_game.blit(field_for_coin_short, (1420, 110))
+    screen_game.blit(field_for_coin_long, (370, 110))
 
     coin_font = pygame.font.Font('data/shrifts/coins_shrift.ttf', 50)
     coin_text = coin_font.render(
@@ -78,16 +80,16 @@ def update_hp_mana_coins(*hp_states, **characteristics):
     screen_game.blit(magic_text, (485, 110))
 
     for i in range(characteristics['hp']):
-        hp_states[0][1] = 643 + i * 64
-        show_image(hp_states[0], screen_game, 'interface')
+        hp_states_0_x = 643 + i * 64
+        screen_game.blit(hp_states[0], (hp_states_0_x, 897))
 
     for i in range(10 - characteristics['hp']):
-        hp_states[1][1] = 1219 - i * 64
-        show_image(hp_states[1], screen_game, 'interface')
+        hp_states_1_x = 1219 - i * 64
+        screen_game.blit(hp_states[1], (hp_states_1_x, 897))
 
     for i in range(10 - characteristics['unlocked_hp']):
-        hp_states[2][1] = 1235 - i * 64
-        show_image(hp_states[2], screen_game, 'interface')
+        hp_states_2_x = 1235 - i * 64
+        screen_game.blit(hp_states[2], (hp_states_2_x, 903))
 
 
 def show_main_text(size):
@@ -111,17 +113,16 @@ class Player(pygame.sprite.Sprite):
         self.y = 250
         self.width = 100
         self.height = 120
-        self.speed = 15
+        self.speed = 13
 
         self.animation_flag = False
         self.time_animation = 0
         self.side_animation = 'right'
         self.walk_animation = 0
 
-        self.form = [f'{self.side_animation}/stop',
-                     self.x, self.y, self.width, 120]
+        self.form = f'{self.side_animation}/stop'
 
-        self.image = load_image(f'{self.form[0]}.png', 'characters\main_hero')
+        self.image = load_image(f'{self.form}.png', 'characters/main_hero')
         self.image = pygame.transform.scale(
             self.image, (self.width, self.height))
         self.rect = self.image.get_rect()
@@ -134,13 +135,11 @@ class Player(pygame.sprite.Sprite):
                                 'mana': 50,
                                 'unlocked_mana': 50}
 
-        self.hp_states = [['filled_cell_HP', 643, 897, 60, 52],
-                          ['unfilled_cell_HP', 1219, 897, 60, 52],
-                          ['loced_HP', 1235, 903, 30, 40]]
-
     def movement(self):
         # Перемещение
         keys = pygame.key.get_pressed()
+        if not keys:
+            return
         if keys[ord(SETTINGS['forward'])]:
             if self.rect.y - self.speed >= 190:
                 self.rect.y -= self.speed
@@ -170,19 +169,17 @@ class Player(pygame.sprite.Sprite):
 
         # Смена анимации перемещения
         if self.animation_flag:
-            self.form = [f'{self.side_animation}/walk_{self.walk_animation}',
-                         self.rect.x, self.rect.y, self.width, 120]
-            if self.time_animation == 2:
+            self.form = f'{self.side_animation}/walk_{self.walk_animation}'
+            if self.time_animation == 4:
                 self.walk_animation = (self.walk_animation + 1) % 7
-            self.time_animation = (self.time_animation + 1) % 3
+            self.time_animation = (self.time_animation + 1) % 5
 
             if not pygame.mixer.Channel(sounds['steps']).get_busy():
                 pygame.mixer.Channel(sounds['steps']).play(pygame.mixer.Sound(
                     'data/music_and_sounds/sounds/main_hero_sounds/steps.mp3'))
         else:
             # Анимация стояния на месте
-            self.form = [f'{self.side_animation}/stop',
-                         self.rect.x, self.rect.y, self.width, 120]
+            self.form = f'{self.side_animation}/stop'
             self.animation_flag = False
             self.time_animation = 0
             pygame.mixer.Channel(sounds['steps']).stop()
@@ -220,7 +217,6 @@ class Player(pygame.sprite.Sprite):
                 if 770 < self.rect.x < 1100 and 320 < self.rect.y < 630:
                     chest.animation_flag = True
                     if map_list[room.room_number[0]][room.room_number[1]][1] != 'used':
-                        map_list[room.room_number[0]][room.room_number[1]][1] = 'used'
                         if not pygame.mixer.Channel(sounds['diffrent']).get_busy():
                             pygame.mixer.Channel(sounds['diffrent']).play(pygame.mixer.Sound(
                                 'data/music_and_sounds/sounds/map_sounds/chest_open.mp3'))
@@ -230,7 +226,7 @@ class Player(pygame.sprite.Sprite):
                 if self.rect.y <= 195 and 840 < self.rect.x < 1000:
                     main_text = 'Пути назад уже нет'
                     text_tick = 0
-                    max_text_tick = 30
+                    max_text_tick = 35
                     text_size = 50
                     text_coords = [710, 110]
             
@@ -256,7 +252,7 @@ class Player(pygame.sprite.Sprite):
                     else:
                         main_text = 'Нужно проверить все комнаты'
                         text_tick = 0
-                        max_text_tick = 30
+                        max_text_tick = 45
                         text_size = 45
                         text_coords = [630, 110]
 
@@ -267,7 +263,7 @@ class Player(pygame.sprite.Sprite):
                         if player.characteristics['coins'] < 10:
                             main_text = 'У вас недостаточно средств!'
                             text_tick = 0
-                            max_text_tick = 25
+                            max_text_tick = 40
                             text_size = 45
                             text_coords = [650, 110]
 
@@ -275,18 +271,18 @@ class Player(pygame.sprite.Sprite):
                             player.characteristics['coins'] -= 10
                             
                             chance = random.random()
-                            if chance < 0.55:
+                            if chance < 0.65:
                                 pygame.mixer.Channel(sounds['diffrent']).play(pygame.mixer.Sound('data/music_and_sounds/sounds/map_sounds/automat/loss.mp3'))
                                 main_text = 'Упс, не повезло!'
                                 text_tick = 0
-                                max_text_tick = 17
+                                max_text_tick = 27
                                 text_size = 55
                                 text_coords = [770, 110]
                             else:
                                 pygame.mixer.Channel(sounds['diffrent']).play(pygame.mixer.Sound('data/music_and_sounds/sounds/map_sounds/automat/victory.mp3'))
                                 main_text = 'Вы выиграли!'
                                 text_tick = 0
-                                max_text_tick = 30
+                                max_text_tick = 50
                                 text_size = 55
                                 text_coords = [790, 110]
 
@@ -319,23 +315,24 @@ class Player(pygame.sprite.Sprite):
                             
                             main_text = 'Повезло...'
                             text_tick = 0
-                            max_text_tick = 30
+                            max_text_tick = 40
                             text_size = 55
                             text_coords = [860, 110]
 
                         else:
                             if 0.33 <= chance < 0.66:
-                                player.characteristics['unlocked_mana'] -= 25
-                                if player.characteristics['mana'] > player.characteristics['unlocked_mana']:
-                                    player.characteristics['mana'] = player.characteristics['unlocked_mana']
-                            elif 0.66 <= chance < 1:
-                                player.characteristics['unlocked_hp'] -= 1
-                                if player.characteristics['hp'] > player.characteristics['unlocked_hp']:
-                                    player.characteristics['hp'] = player.characteristics['unlocked_hp']
+                                if player.characteristics['unlocked_mana'] - 25 >= 0:
+                                    player.characteristics['unlocked_mana'] -= 25
+                                    if player.characteristics['mana'] > player.characteristics['unlocked_mana']:
+                                        player.characteristics['mana'] = player.characteristics['unlocked_mana']
+                                elif 0.66 <= chance < 1:
+                                    player.characteristics['unlocked_hp'] -= 1
+                                    if player.characteristics['hp'] > player.characteristics['unlocked_hp']:
+                                        player.characteristics['hp'] = player.characteristics['unlocked_hp']
                             
                             main_text = 'Не повезло)'
                             text_tick = 0
-                            max_text_tick = 30
+                            max_text_tick = 40
                             text_size = 55
                             text_coords = [840, 110]
                         
@@ -343,7 +340,6 @@ class Player(pygame.sprite.Sprite):
                                 'data/music_and_sounds/sounds/map_sounds/storm.mp3'))
 
                         
-
 
         elif event.key == pygame.K_z:
             print(self.rect.x, self.rect.y)
@@ -354,41 +350,11 @@ class Player(pygame.sprite.Sprite):
         # Обновление изменяемых характеристик и картинки героя
 
     def update(self):
-        update_hp_mana_coins(*self.hp_states, **self.characteristics)
-        show_image(self.form, screen_game, 'characters/main_hero')
+        update_hp_mana_coins(**self.characteristics)
 
-
-class Object(pygame.sprite.Sprite):
-    # строго вертикальный или строго горизонтальный отрезок
-    def __init__(self, image, where, x, y, width, height, max_animation):
-        pygame.sprite.Sprite.__init__(self)
-        self.animation_flag = False
-        self.animation = 0
-        self.max_animation = max_animation
-
-        self.image = image
-        self.where = where
-        self.width = width
-        self.height = height
-
-        self.image_fin = load_image(f'{image}{self.animation}.png', where)
-        self.image_fin = pygame.transform.scale(
-            self.image_fin, (width, height))
-
-        self.rect = self.image_fin.get_rect()
-        self.rect.x = x
-        self.rect.y = y
-
-        all_objects.add(self)
-
-    def update(self):
-        if self.animation_flag and self.animation < self.max_animation:
-            self.animation += 1
-
-            self.image_fin = load_image(
-                f'{self.image}{self.animation}.png', self.where)
-        show_image([f'{self.image}{self.animation}', self.rect.x,
-                   self.rect.y, self.width, self.height], screen_game, self.where)
+        im = load_image(f'{self.form}.png', 'characters/main_hero')
+        im = pygame.transform.scale(im, (self.width, self.height))
+        screen_game.blit(im, (self.rect.x, self.rect.y))
 
 
 class Room():
@@ -400,134 +366,94 @@ class Room():
 
         self.fight_flag = True
 
-        # Дверь в начальной комнате
-        self.big_door = ['doors/big_door', 765, 185, 400, 100]
-
-        # Комнаты
-        self.em_room = ['empty_room', 280, 190, 1355, 660]
-
     # Генерация комнаты
     def create(self):
+        global all_objects
+        # Группа спрайтов объектов
+        all_objects = pygame.sprite.Group()
+
         # Пустая комната
-        show_image(self.em_room, screen_game, 'map')
+        screen_game.blit(em_room, (280, 190))
         self.this_room = self.map_list[self.room_number[0]][self.room_number[1]]
         
         # Двери
         if self.fight_flag:
-            door_state = 'close'
+            if room.change_room_number('up', change=False):
+                screen_game.blit(doors_close[0], (925, 190))
+            if room.change_room_number('down', change=False):
+                screen_game.blit(doors_close[1], (925, 765))
+            if room.change_room_number('left', change=False):
+                screen_game.blit(doors_close[2], (285, 480))
+            if room.change_room_number('right', change=False):
+                screen_game.blit(doors_close[3], (1545, 480))
         else:
-            door_state = 'open'
-
-        door_up = [f'doors/door_{door_state}_up', 925, 190, 100, 85]
-        door_down = [f'doors/door_{door_state}_down', 925, 765, 100, 85]
-        door_left = [f'doors/door_{door_state}_left', 285, 480, 85, 100]
-        door_right = [f'doors/door_{door_state}_right', 1545, 480, 85, 100]
-
-
-        if room.change_room_number('up', change=False):
-            show_image(door_up, screen_game, 'map')
-        if room.change_room_number('down', change=False):
-            show_image(door_down, screen_game, 'map')
-        if room.change_room_number('left', change=False):
-            show_image(door_left, screen_game, 'map')
-        if room.change_room_number('right', change=False):
-            show_image(door_right, screen_game, 'map')
+            if room.change_room_number('up', change=False):
+                screen_game.blit(doors_open[0], (925, 190))
+            if room.change_room_number('down', change=False):
+                screen_game.blit(doors_open[1], (925, 765))
+            if room.change_room_number('left', change=False):
+                screen_game.blit(doors_open[2], (285, 480))
+            if room.change_room_number('right', change=False):
+                screen_game.blit(doors_open[3], (1545, 480))
 
         # Стартовая комната 1 уровня
         if self.this_room[0] == 'door_start':
-            show_image(self.big_door, screen_game, 'map')
+            screen_game.blit(big_door, (765, 185))
 
         # Комната с сундуком
         elif self.this_room[0] == 'chest':
-            global chest
-            try:
-                if not chest in all_objects:
-                    if self.this_room[1] != 'used':
-                        chest = Object('chest_animation_',
-                                       'map/chest', 900, 450, 150, 150, 5)
-                    else:
-                        chest = Object('chest_animation_',
-                                       'map/chest', 900, 450, 150, 150, 5)
-                        chest.animation = 5
-            except Exception:
-                chest = Object('chest_animation_', 'map/chest',
-                               900, 450, 150, 150, 5)
+            if self.this_room[1] == 'used':
+                chest.animation = 5
+                chest.used()
+
+            if chest.animation == chest.max_animation:
+                map_list[room.room_number[0]][room.room_number[1]][1] = 'used'
+
             chest.update()
+            all_objects.add(chest)
+            screen_game.blit(chest.image_fin, (chest.rect.x, chest.rect.y))
 
         # Стартовая комната
         elif self.this_room[0] == 'start':
-            stairs_image = ['stairs/up', 1425, 275, 120, 120]
-            show_image(stairs_image, screen_game, 'map')
+            screen_game.blit(stairs_image, (1425, 275))
             
         # Конечная комната
         elif self.this_room[0] == 'end':
-            try:
-                if not stairs in all_objects:
-                    pass
-            except Exception:
-                stairs = Object('down_', 'map/stairs', 1350, 180, 200, 200, 0)
-            stairs.update()
+            all_objects.add(stairs)
+            screen_game.blit(stairs.image_fin, (stairs.rect.x, stairs.rect.y))
 
         # Аркадная комната
         elif self.this_room[0] == 'arcada':
-            try:
-                if not automat in all_objects:
-                    pass
-            except Exception:
-                automat = Object('arсada_', 'map', 905, 420, 150, 200, 0)
-            automat.update()
+            all_objects.add(automat)
+            screen_game.blit(automat.image_fin, (automat.rect.x, automat.rect.y))
 
         elif room.this_room[0] == 'life_room':
-            try:
-                if not death in all_objects:
-                    pass
-            except Exception:
-                death = Object('death_com_', 'map/life_room', 1120, 230, 300, 240, 0)
-                table_1 = Object('table_', 'map', 500, 520, 100, 100, 0)
-                table_2 = Object('table_', 'map', 700, 285, 100, 100, 0)
-                table_3 = Object('table_', 'map', 900, 520, 100, 100, 0)
-                dark_sphere_1 = Object('dark_sphere_', 'map/life_room', 513, 515, 70, 70, 0)
-                dark_sphere_2 = Object('dark_sphere_', 'map/life_room', 713, 280, 70, 70, 0)
-                dark_sphere_3 = Object('dark_sphere_', 'map/life_room', 913, 515, 70, 70, 0)
+            all_objects.add(death)
+            screen_game.blit(death.image_fin, (death.rect.x, death.rect.y))
 
-            if room.this_room[1] != 'used':
-                death.update()
-
-                table_1.update()
-                table_2.update()
-                table_3.update()
-
-                dark_sphere_1.update()
-                dark_sphere_2.update()
-                dark_sphere_3.update()
-            else:
-                table_1.update()
-                table_2.update()
-                table_3.update()
-
-        elif room.this_room[0] == 'shop':
-            trader = Object('shop_', 'map/traders', 1170, 370, 240, 200, 0)
-
-            table_1 = Object('table_', 'map', 500, 520, 100, 100, 0)
-            table_2 = Object('table_', 'map', 700, 285, 100, 100, 0)
-            table_3 = Object('table_', 'map', 900, 520, 100, 100, 0)
+            all_objects.add(table_1, table_2, table_3)
+            screen_game.blit(table_life_1.image_fin, (table_life_1.rect.x, table_life_1.rect.y))
+            screen_game.blit(table_life_2.image_fin, (table_life_2.rect.x, table_life_2.rect.y))
+            screen_game.blit(table_life_3.image_fin, (table_life_3.rect.x, table_life_3.rect.y))
             
-            trader.update()
-            table_1.update()
-            table_2.update()
-            table_3.update()
+            if room.this_room[1] != 'used':
+                all_objects.add(dark_sphere_1, dark_sphere_2, dark_sphere_3)
+                screen_game.blit(dark_sphere_1.image_fin, (dark_sphere_1.rect.x, dark_sphere_1.rect.y))
+                screen_game.blit(dark_sphere_2.image_fin, (dark_sphere_2.rect.x, dark_sphere_2.rect.y))
+                screen_game.blit(dark_sphere_3.image_fin, (dark_sphere_3.rect.x, dark_sphere_3.rect.y))
 
-        elif room.this_room[0] == 'upgrade_shop':
-            trader = Object('upgrade_shop_', 'map/traders', 1170, 370, 240, 200, 0)
-
-            table_1 = Object('table_', 'map', 500, 520, 100, 100, 0)
-            table_2 = Object('table_', 'map', 700, 285, 100, 100, 0)
-            table_3 = Object('table_', 'map', 900, 520, 100, 100, 0)
-
-            trader.update()
-            table_1.update()
-            table_2.update()
-            table_3.update()
+        elif room.this_room[0] == 'shop' or room.this_room[0] == 'upgrade_shop':
+            if room.this_room[0] == 'shop':
+                all_objects.add(trader_shop)
+                screen_game.blit(trader_shop.image_fin, (trader_shop.rect.x, trader_shop.rect.y))
+            else:
+                all_objects.add(trader_upgrade)
+                screen_game.blit(trader_upgrade.image_fin, (trader_upgrade.rect.x, trader_upgrade.rect.y))
+            
+            all_objects.add(table_1, table_2, table_3)
+            screen_game.blit(table_1.image_fin, (table_1.rect.x, table_1.rect.y))
+            screen_game.blit(table_2.image_fin, (table_2.rect.x, table_2.rect.y))
+            screen_game.blit(table_3.image_fin, (table_3.rect.x, table_3.rect.y))
 
     # Проверка наличия комнаты в месте куда вы хотите перейти и изменение номера вашей комнаты
     def change_room_number(self, where, change):
@@ -579,23 +505,14 @@ def start():
     global main_text,text_size
     global text_tick, max_text_tick
     global text_coords, player
-
-    pygame.init()
+    
     channels = 3
     pygame.mixer.init(frequency=44100, size=-16, channels=channels, buffer=4096)
 
-    # Создание экрана
-    screen_game = pygame.display.set_mode((1920, 1080))
-    pygame.display.set_caption('Infinity Castle')
-
     # Фон и интерфейс
-    fon = load_image('background.png', 'interface')
-    fon = pygame.transform.scale(fon, (1920, 1080))
-    screen_game.blit(fon, (0, 0))
-
     interface()
 
-    FPS = 60
+    FPS = 120
     clock = pygame.time.Clock()
 
     # Текст сверху
@@ -624,14 +541,14 @@ def start():
     # Генерация карты уровня
     map_list, room_number = map_generation(level, map_size=4)
 
+    # Загрузка интерфейса
+    interface()
+
     for i in map_list:
         for j in i:
             print(j[0], end='|')
         print()
     print(room_number)
-
-    # Группы спрайтов
-    all_objects = pygame.sprite.Group()
 
     # Спрайт игрока и создание переменной комнаты
     player = Player()
@@ -646,6 +563,10 @@ def start():
     cursor_rect = pygame.Rect(380, 280, 1150, 470)
     cursor_x, cursor_y = cursor_rect.center
     pygame.mouse.set_pos(cursor_x, cursor_y)
+
+    # Изменение анимации у интерактивных объектов
+    global chest
+    chest = Object('chest_animation_','map/chest', 900, 450, 150, 150, 5)
 
     # Основной цикл
     running = True
@@ -663,7 +584,7 @@ def start():
             if event.type == pygame.MOUSEMOTION:
                 check_cursor(cursor_rect)  # Ограничение курсора
 
-        interface() # Загрузка интерфейса
+        screen_game.blit(text_field, (590, 40))
         load_settings(channels)  # Загрузка настроек
         room.create()  # Создание комнаты
 
