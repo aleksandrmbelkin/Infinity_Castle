@@ -507,8 +507,13 @@ def start():
     global text_tick, max_text_tick
     global text_coords, player
     
+    pygame.init()
     channels = 3
     pygame.mixer.init(frequency=44100, size=-16, channels=channels, buffer=4096)
+
+    # Создание экрана
+    screen_game = pygame.display.set_mode((1920, 1080))
+    pygame.display.set_caption('Infinity Castle')
 
     # Фон и интерфейс
     interface()
