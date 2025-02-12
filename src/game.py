@@ -113,7 +113,7 @@ class Player(pygame.sprite.Sprite):
         self.y = 250
         self.width = 100
         self.height = 120
-        self.speed = 13
+        self.speed = 5
 
         self.animation_flag = False
         self.time_animation = 0
@@ -170,9 +170,9 @@ class Player(pygame.sprite.Sprite):
         # Смена анимации перемещения
         if self.animation_flag:
             self.form = f'{self.side_animation}/walk_{self.walk_animation}'
-            if self.time_animation == 4:
+            if self.time_animation == 7:
                 self.walk_animation = (self.walk_animation + 1) % 7
-            self.time_animation = (self.time_animation + 1) % 5
+            self.time_animation = (self.time_animation + 1) % 8
 
             if not pygame.mixer.Channel(sounds['steps']).get_busy():
                 pygame.mixer.Channel(sounds['steps']).play(pygame.mixer.Sound(
@@ -226,7 +226,7 @@ class Player(pygame.sprite.Sprite):
                 if self.rect.y <= 195 and 840 < self.rect.x < 1000:
                     main_text = 'Пути назад уже нет'
                     text_tick = 0
-                    max_text_tick = 35
+                    max_text_tick = 100
                     text_size = 50
                     text_coords = [710, 110]
             
@@ -252,7 +252,7 @@ class Player(pygame.sprite.Sprite):
                     else:
                         main_text = 'Нужно проверить все комнаты'
                         text_tick = 0
-                        max_text_tick = 45
+                        max_text_tick = 120
                         text_size = 45
                         text_coords = [630, 110]
 
@@ -263,7 +263,7 @@ class Player(pygame.sprite.Sprite):
                         if player.characteristics['coins'] < 10:
                             main_text = 'У вас недостаточно средств!'
                             text_tick = 0
-                            max_text_tick = 40
+                            max_text_tick = 120
                             text_size = 45
                             text_coords = [650, 110]
 
@@ -275,14 +275,14 @@ class Player(pygame.sprite.Sprite):
                                 pygame.mixer.Channel(sounds['diffrent']).play(pygame.mixer.Sound('data/music_and_sounds/sounds/map_sounds/automat/loss.mp3'))
                                 main_text = 'Упс, не повезло!'
                                 text_tick = 0
-                                max_text_tick = 27
+                                max_text_tick = 50
                                 text_size = 55
                                 text_coords = [770, 110]
                             else:
                                 pygame.mixer.Channel(sounds['diffrent']).play(pygame.mixer.Sound('data/music_and_sounds/sounds/map_sounds/automat/victory.mp3'))
                                 main_text = 'Вы выиграли!'
                                 text_tick = 0
-                                max_text_tick = 50
+                                max_text_tick = 150
                                 text_size = 55
                                 text_coords = [790, 110]
 
@@ -295,7 +295,7 @@ class Player(pygame.sprite.Sprite):
                                 if 0.9 <= chance < 1:
                                     pass # Зелье
 
-
+            # Комната жизни
             elif room.this_room[0] == 'life_room':
                 if map_list[room.room_number[0]][room.room_number[1]][1] != 'used':
                     if ((395 <= self.rect.x <= 605 and 430 <= self.rect.y <= 565) or 
@@ -310,12 +310,13 @@ class Player(pygame.sprite.Sprite):
                                 player.characteristics['unlocked_mana'] += 25
                                 player.characteristics['mana'] += 25
                             elif 0.16 <= chance < 0.33:
-                                player.characteristics['unlocked_hp'] += 1
-                                player.characteristics['hp'] += 1
+                                if player.characteristics['unlocked_hp'] + 1 <= 10:
+                                    player.characteristics['unlocked_hp'] += 1
+                                    player.characteristics['hp'] += 1
                             
                             main_text = 'Повезло...'
                             text_tick = 0
-                            max_text_tick = 40
+                            max_text_tick = 100
                             text_size = 55
                             text_coords = [860, 110]
 
@@ -325,14 +326,14 @@ class Player(pygame.sprite.Sprite):
                                     player.characteristics['unlocked_mana'] -= 25
                                     if player.characteristics['mana'] > player.characteristics['unlocked_mana']:
                                         player.characteristics['mana'] = player.characteristics['unlocked_mana']
-                                elif 0.66 <= chance < 1:
-                                    player.characteristics['unlocked_hp'] -= 1
-                                    if player.characteristics['hp'] > player.characteristics['unlocked_hp']:
-                                        player.characteristics['hp'] = player.characteristics['unlocked_hp']
+                            elif 0.66 <= chance <= 1:
+                                player.characteristics['unlocked_hp'] -= 1
+                                if player.characteristics['hp'] > player.characteristics['unlocked_hp']:
+                                    player.characteristics['hp'] = player.characteristics['unlocked_hp']
                             
                             main_text = 'Не повезло)'
                             text_tick = 0
-                            max_text_tick = 40
+                            max_text_tick = 100
                             text_size = 55
                             text_coords = [840, 110]
                         
