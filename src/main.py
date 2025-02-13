@@ -32,7 +32,7 @@ def load_settings():
     global SETTINGS
     # загрузка настроек из файла
     SETTINGS = ['sound 1', 'musik 1', 'forward w', 'left a', 'down s', 'right d', 'melee_weapon q', 'magic_weapon e',
-                'interaction f', 'menu esc']
+                'interaction f', 'menu ']
     try:
         test = open('settings.txt')
     except Exception:
@@ -82,8 +82,6 @@ class Button(pygame.sprite.Sprite):
             if self.button_type == 'game_start.png':
                 if NICKNAME:
                     pygame.quit()
-                    global level
-                    level = 1
                     start()
                 else:
                     account_login()
@@ -136,7 +134,6 @@ class Button(pygame.sprite.Sprite):
                     input_box[i].text = SETTINGS[2 + i][1]
                     input_box[i].render()
                     input_box[i].draw(screen)
-                settings()
             elif self.button_type == 'confirm.png':
                 account_check(input_box1.returning(),
                               input_box2.returning(),
