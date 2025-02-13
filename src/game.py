@@ -1,10 +1,9 @@
 import pygame
 import os
-from func import load_image, show_image, terminate
-from func import map_generation
+from func import load_image, terminate
+import time
 import math
 import random
-from func import load_image, terminate
 from func import map_generation
 from game_load import *
 
@@ -19,12 +18,14 @@ usual_skeletons_group = pygame.sprite.Group()
 attack_usual_skeleton_group = pygame.sprite.Group()
 coins_group = pygame.sprite.Group()
 items_group = pygame.sprite.Group()
+items_this_room_group = pygame.sprite.Group()
 
 FIGHT = False
 CANFIRE = True
 CANMELEE = True
 
 DIFFICULTY_MULTY = 1.0
+OBJECTS = {}
 images = [['coin', 1330, 105, 70, 70], ['magic_frame', 1335, 860, 120, 120],
           ['magic_frame', 1495, 860, 120, 120], [
               'weapon_frame', 300, 860, 125, 125],
@@ -36,7 +37,7 @@ images = [['coin', 1330, 105, 70, 70], ['magic_frame', 1335, 860, 120, 120],
 
 
 # Загрузка данных из настроек
-def load_settings():
+def load_settings(channels):
     global SETTINGS
     # загрузка настроек из файла
     # SETTINGS = ['sound 1', 'musik 1', 'forward w', 'left a', 'down s', 'right d', 'melee_weapon q', 'magic_weapon e',
@@ -51,9 +52,11 @@ def load_settings():
     test.close()
 
     if SETTINGS['sound'] == '1':
-        pass
+        for i in range(1, channels + 1):
+            pygame.mixer.Channel(i).set_volume(1)
     else:
-        pass
+        for i in range(1, channels + 1):
+            pygame.mixer.Channel(i).set_volume(0)
     if SETTINGS['musik'] == '1':
         pygame.mixer.music.set_volume(0.25)
     else:
@@ -62,7 +65,6 @@ def load_settings():
 
 # Создание и выведение на экран интерфейса
 def interface():
-
     fon = load_image('background.png', 'interface')
     fon = pygame.transform.scale(fon, (1920, 1080))
     screen_game.blit(fon, (0, 0))
@@ -76,30 +78,22 @@ def interface():
         screen_game.blit(im, (image[1], image[2]))
 
 
-def check_cursor(cursor_rect):
-    cursor_x, cursor_y = pygame.mouse.get_pos()
-    if not cursor_rect.collidepoint(cursor_x, cursor_y):
-        # Если курсор вышел за границы, возвращаем его обратно
-        cursor_x = max(cursor_rect.left, min(cursor_x, cursor_rect.right))
-        cursor_y = max(cursor_rect.top, min(cursor_y, cursor_rect.bottom))
-        pygame.mouse.set_pos(cursor_x, cursor_y)
-
 # Обновление изменяемых характеристик героя
 def update_hp_mana_coins(**characteristics):
     screen_game.blit(field_for_coin_short, (1420, 110))
     screen_game.blit(field_for_coin_long, (370, 110))
-    
+
     coin_font = pygame.font.Font('data/shrifts/coins_shrift.ttf', 50)
     coin_text = coin_font.render(
         str(characteristics['coins']), False, (20, 20, 20))
     screen_game.blit(coin_text, (1475, 110))
 
     magic_font = pygame.font.Font('data/shrifts/coins_shrift.ttf', 50)
-    magic_text = magic_font.render(f'{str(characteristics['mana'])}',
+    magic_text = magic_font.render(f'{str(characteristics["mana"])}',
                                    False, (20, 20, 20))
     screen_game.blit(magic_text, (395, 110))
 
-    magic_text = magic_font.render(f'/{str(characteristics['unlocked_mana'])}',
+    magic_text = magic_font.render(f'/{str(characteristics["unlocked_mana"])}',
                                    False, (20, 20, 20))
     screen_game.blit(magic_text, (485, 110))
 
@@ -201,7 +195,7 @@ class usual_skeleton(pygame.sprite.Sprite):
         self.y = random.randint(190, 660)
         self.rect = pygame.Rect(self.x, self.y, 100, 100)
         self.hp = 100 * DIFFICULTY_MULTY
-        self.speed = 5
+        self.speed = 3
         self.canmelee = True
         self.lastmelee = -1
         self.hitted = []
@@ -256,6 +250,7 @@ class Coin(pygame.sprite.Sprite):
             self.kill()
             player.characteristics['coins'] += 1
 
+
 def show_main_text(size):
     global text_tick, main_text, text_coords
 
@@ -301,11 +296,11 @@ class Player(pygame.sprite.Sprite):
         # Анимации
         self.form = f'{self.side_animation}/stop'
         self.attack_animation = ['atack_2.' + str(i) + '.png' for i in range(4)]
-
+        print(self.form)
         self.image = load_image(f'{self.form}.png', 'characters/main_hero')
         self.image = pygame.transform.scale(
             self.image, (self.width, self.height))
-        
+
         self.rect = self.image.get_rect()
         self.rect.x = self.x
         self.rect.y = self.y
@@ -355,16 +350,18 @@ class Player(pygame.sprite.Sprite):
                 self.walk_animation = (self.walk_animation + 1) % 7
             self.time_animation = (self.time_animation + 1) % 8
 
-            if not sounds['steps'].get_busy():
-                sounds['steps'].play(pygame.mixer.Sound('data/music_and_sounds/sounds/main_hero_sounds/steps.mp3'))
+            if not pygame.mixer.Channel(sounds['steps']).get_busy():
+                pygame.mixer.Channel(sounds['steps']).play(pygame.mixer.Sound(
+                    'data/music_and_sounds/sounds/main_hero_sounds/steps.mp3'))
         else:
             # Анимация стояния на месте
             self.form = f'{self.side_animation}/stop'
             self.animation_flag = False
             self.time_animation = 0
-            sounds['steps'].stop()
+            pygame.mixer.Channel(sounds['steps']).stop()
 
         self.animation_flag = False
+
     # Взаимодействия
     def action(self, event):
         if event.key == ord(SETTINGS['interaction']):
@@ -372,21 +369,21 @@ class Player(pygame.sprite.Sprite):
             can = False
             if self.rect.x >= 1440 and 400 < self.rect.y < 560:
                 can = room.change_room_number('right', change=True)
-                if can and not room.fight_flag:
+                if can and not FIGHT:
                     self.rect.x = 350
             elif self.rect.x <= 360 and 400 < self.rect.y < 550:
                 can = room.change_room_number('left', change=True)
-                if can and not room.fight_flag:
+                if can and not FIGHT:
                     self.rect.x = 1550 - self.width
             elif self.rect.y >= 635 and 840 < self.rect.x < 1000:
                 can = room.change_room_number('down', change=True)
-                if can and not room.fight_flag:
+                if can and not FIGHT:
                     self.rect.y = 190
             elif self.rect.y <= 195 and 840 < self.rect.x < 1000:
                 can = room.change_room_number('up', change=True)
-                if can and not room.fight_flag:
+                if can and not FIGHT:
                     self.rect.y = 765 - self.height
-            
+
             if can:
                 for i in magic_group:
                     i.kill()
@@ -396,7 +393,12 @@ class Player(pygame.sprite.Sprite):
                     i.kill()
                 for i in coins_group:
                     i.kill()
-             
+                for i in items_this_room_group:
+                    i.remove(items_this_room_group)
+                if room.this_room[0] in OBJECTS:
+                    for i in OBJECTS[room.this_room[0]]:
+                        items_this_room_group.add(i)
+
             # Сундук
             if room.this_room[0] == 'chest':
                 if 770 < self.rect.x < 1100 and 320 < self.rect.y < 630:
@@ -414,7 +416,7 @@ class Player(pygame.sprite.Sprite):
                     max_text_tick = 100
                     text_size = 50
                     text_coords = [710, 110]
-            
+
             # Конечная комната
             elif room.this_room[0] == 'end':
                 if self.rect.x >= 1240 and self.rect.y < 325:
@@ -440,12 +442,13 @@ class Player(pygame.sprite.Sprite):
                         max_text_tick = 120
                         text_size = 45
                         text_coords = [630, 110]
-                        
+
 
             # Аркадная комната
             elif room.this_room[0] == 'arcada':
                 if 790 < self.rect.x < 1065 and 285 < self.rect.y < 620:
-                    if not pygame.mixer.Channel(sounds['diffrent']).get_busy() and not pygame.mixer.Channel(sounds['diffrent']).get_busy():
+                    if not pygame.mixer.Channel(sounds['diffrent']).get_busy() and not pygame.mixer.Channel(
+                            sounds['diffrent']).get_busy():
                         if player.characteristics['coins'] < 10:
                             main_text = 'У вас недостаточно средств!'
                             text_tick = 0
@@ -455,17 +458,19 @@ class Player(pygame.sprite.Sprite):
 
                         else:
                             player.characteristics['coins'] -= 10
-                            
+
                             chance = random.random()
                             if chance < 0.65:
-                                pygame.mixer.Channel(sounds['diffrent']).play(pygame.mixer.Sound('data/music_and_sounds/sounds/map_sounds/automat/loss.mp3'))
+                                pygame.mixer.Channel(sounds['diffrent']).play(
+                                    pygame.mixer.Sound('data/music_and_sounds/sounds/map_sounds/automat/loss.mp3'))
                                 main_text = 'Упс, не повезло!'
                                 text_tick = 0
                                 max_text_tick = 50
                                 text_size = 55
                                 text_coords = [770, 110]
                             else:
-                                pygame.mixer.Channel(sounds['diffrent']).play(pygame.mixer.Sound('data/music_and_sounds/sounds/map_sounds/automat/victory.mp3'))
+                                pygame.mixer.Channel(sounds['diffrent']).play(
+                                    pygame.mixer.Sound('data/music_and_sounds/sounds/map_sounds/automat/victory.mp3'))
                                 main_text = 'Вы выиграли!'
                                 text_tick = 0
                                 max_text_tick = 150
@@ -473,20 +478,20 @@ class Player(pygame.sprite.Sprite):
                                 text_coords = [790, 110]
 
                                 if 0.55 <= chance < 0.7:
-                                    pass # 30 монет
+                                    pass  # 30 монет
                                 if 0.7 <= chance < 0.8:
-                                    pass # Оружие
+                                    pass  # Оружие
                                 if 0.8 <= chance < 0.9:
-                                    pass # Магия
+                                    pass  # Магия
                                 if 0.9 <= chance < 1:
-                                    pass # Зелье
+                                    pass  # Зелье
 
             # Комната жизни
             elif room.this_room[0] == 'life_room':
                 if map_list[room.room_number[0]][room.room_number[1]][1] != 'used':
-                    if ((395 <= self.rect.x <= 605 and 430 <= self.rect.y <= 565) or 
-                        (590 <= self.rect.x <= 810 and 190 <= self.rect.y <= 325) or 
-                        (800 <= self.rect.x <= 1010 and 445 <= self.rect.y <= 565)):
+                    if ((395 <= self.rect.x <= 605 and 430 <= self.rect.y <= 565) or
+                            (590 <= self.rect.x <= 810 and 190 <= self.rect.y <= 325) or
+                            (800 <= self.rect.x <= 1010 and 445 <= self.rect.y <= 565)):
 
                         map_list[room.room_number[0]][room.room_number[1]][1] = 'used'
                         chance = random.random()
@@ -499,7 +504,7 @@ class Player(pygame.sprite.Sprite):
                                 if player.characteristics['unlocked_hp'] + 1 <= 10:
                                     player.characteristics['unlocked_hp'] += 1
                                     player.characteristics['hp'] += 1
-                            
+
                             main_text = 'Повезло...'
                             text_tick = 0
                             max_text_tick = 100
@@ -516,22 +521,18 @@ class Player(pygame.sprite.Sprite):
                                 player.characteristics['unlocked_hp'] -= 1
                                 if player.characteristics['hp'] > player.characteristics['unlocked_hp']:
                                     player.characteristics['hp'] = player.characteristics['unlocked_hp']
-                            
+
                             main_text = 'Не повезло)'
                             text_tick = 0
                             max_text_tick = 100
                             text_size = 55
                             text_coords = [840, 110]
-                        
-                        pygame.mixer.Channel(sounds['diffrent']).play(pygame.mixer.Sound(
-                                'data/music_and_sounds/sounds/map_sounds/storm.mp3'))
 
-                        
+                        pygame.mixer.Channel(sounds['diffrent']).play(pygame.mixer.Sound(
+                            'data/music_and_sounds/sounds/map_sounds/storm.mp3'))
 
         elif event.key == pygame.K_z:
             print(self.rect.x, self.rect.y)
-        elif event.key == pygame.K_c:
-            room.fight_flag = not room.fight_flag
 
     def attack(self, event):
         global CANFIRE, CANMELEE
@@ -555,13 +556,6 @@ class Player(pygame.sprite.Sprite):
     # Обновление изменяемых характеристик и картинки героя
     def update(self):
         update_hp_mana_coins(**self.characteristics)
-        
-        # !!! Возможная ошибка
-        im = load_image(f'{self.form}.png', 'characters/main_hero')
-        im = pygame.transform.scale(im, (self.width, self.height))
-        screen_game.blit(im, (self.rect.x, self.rect.y))
-        # !!!
-        
         if not CANMELEE:
             if self.side_animation == 'right':
                 self.image = load_image(self.attack_animation[self.anim], r'characters\main_hero\right')
@@ -572,7 +566,9 @@ class Player(pygame.sprite.Sprite):
             self.anim %= 4
             screen_game.blit(self.image, (self.rect.x, self.rect.y))
         else:
-            show_image(self.form, screen_game, 'characters/main_hero')
+            im = load_image(f'{self.form}.png', 'characters/main_hero')
+            im = pygame.transform.scale(im, (self.width, self.height))
+            screen_game.blit(im, (self.rect.x, self.rect.y))
             self.anim = 0
         if pygame.sprite.spritecollide(self, attack_usual_skeleton_group, False):
             for i in pygame.sprite.spritecollide(self, attack_usual_skeleton_group, False):
@@ -583,34 +579,6 @@ class Player(pygame.sprite.Sprite):
             end()
 
 
-class Object(pygame.sprite.Sprite):
-    # строго вертикальный или строго горизонтальный отрезок
-    def __init__(self, image, where, x, y, width, height, max_animation):
-        pygame.sprite.Sprite.__init__(self)
-        self.animation_flag = False
-        self.animation = 0
-        self.max_animation = max_animation
-
-        self.image = image
-        self.where = where
-        self.width = width
-        self.height = height
-
-        self.image_fin = load_image(f'{image}{self.animation}.png', where)
-        self.image_fin = pygame.transform.scale(self.image_fin, (width, height))
-
-
-
-    def update(self):
-        if self.animation_flag and self.animation < self.max_animation:
-            self.animation += 1
-
-            self.image_fin = load_image(f'{self.image}{self.animation}.png', self.where)
-            self.mask = pygame.mask.from_surface(self.image_fin)
-        show_image([f'{self.image}{self.animation}', self.rect.x, self.rect.y, self.width, self.height], screen_game,
-                   self.where)
-
-
 class Room:
     # Инициализация начальных сведений о комнатах
     def __init__(self, map_list, room_number):
@@ -619,20 +587,19 @@ class Room:
         self.map_size = len(map_list)
 
         self.em_room = ['empty_room', 280, 190, 1355, 660]
-        self.fight_flag = True
+        self.this_room = self.map_list[self.room_number[0]][self.room_number[1]]
 
     # Генерация комнаты
     def create(self):
         global all_objects
         # Группа спрайтов объектов
+        self.this_room = self.map_list[self.room_number[0]][self.room_number[1]]
         all_objects = pygame.sprite.Group()
 
         # Пустая комната
         screen_game.blit(em_room, (280, 190))
-        self.this_room = self.map_list[self.room_number[0]][self.room_number[1]]
-        
         # Двери
-        if self.fight_flag:
+        if FIGHT:
             if room.change_room_number('up', change=False):
                 screen_game.blit(doors_close[0], (925, 190))
             if room.change_room_number('down', change=False):
@@ -671,12 +638,17 @@ class Room:
         # Стартовая комната
         elif self.this_room[0] == 'start':
             screen_game.blit(stairs_image, (1425, 275))
-            
+
         # Конечная комната
         elif self.this_room[0] == 'end':
             all_objects.add(stairs)
             screen_game.blit(stairs.image_fin, (stairs.rect.x, stairs.rect.y))
-
+        # Комната с монстрами
+        elif self.this_room[0] == 'monsters':
+            if self.this_room[1] != 'used':
+                for _ in range(3):
+                    usual_skeleton()
+                self.this_room[1] = 'used'
         # Аркадная комната
         elif self.this_room[0] == 'arcada':
             all_objects.add(automat)
@@ -690,7 +662,7 @@ class Room:
             screen_game.blit(table_life_1.image_fin, (table_life_1.rect.x, table_life_1.rect.y))
             screen_game.blit(table_life_2.image_fin, (table_life_2.rect.x, table_life_2.rect.y))
             screen_game.blit(table_life_3.image_fin, (table_life_3.rect.x, table_life_3.rect.y))
-            
+
             if room.this_room[1] != 'used':
                 all_objects.add(dark_sphere_1, dark_sphere_2, dark_sphere_3)
                 screen_game.blit(dark_sphere_1.image_fin, (dark_sphere_1.rect.x, dark_sphere_1.rect.y))
@@ -704,71 +676,79 @@ class Room:
             else:
                 all_objects.add(trader_upgrade)
                 screen_game.blit(trader_upgrade.image_fin, (trader_upgrade.rect.x, trader_upgrade.rect.y))
-            
+
             all_objects.add(table_1, table_2, table_3)
             screen_game.blit(table_1.image_fin, (table_1.rect.x, table_1.rect.y))
             screen_game.blit(table_2.image_fin, (table_2.rect.x, table_2.rect.y))
             screen_game.blit(table_3.image_fin, (table_3.rect.x, table_3.rect.y))
 
     # Проверка наличия комнаты в месте куда вы хотите перейти и изменение номера вашей комнаты
-    def change_room_number(self, where):
+    def change_room_number(self, where, change):
+        global main_text
         can = False
 
         if where == 'up':
             if (self.room_number[0] - 1 >= 0 and
                     self.map_list[self.room_number[0] - 1][self.room_number[1]][0] != 'no'):
                 self.room_number[0] -= 1
+                what = [0, -1]
                 can = True
         elif where == 'down':
             if (self.room_number[0] + 1 < self.map_size and
                     self.map_list[self.room_number[0] + 1][self.room_number[1]][0] != 'no'):
                 self.room_number[0] += 1
+                what = [0, 1]
                 can = True
         elif where == 'left':
             if (self.room_number[1] - 1 >= 0 and
                     self.map_list[self.room_number[0]][self.room_number[1] - 1][0] != 'no'):
                 self.room_number[1] -= 1
+                what = [1, -1]
                 can = True
         elif where == 'right':
             if (self.room_number[1] + 1 < self.map_size and
                     self.map_list[self.room_number[0]][self.room_number[1] + 1][0] != 'no'):
                 self.room_number[1] += 1
+                what = [1, 1]
                 can = True
 
-        if change and can and not room.fight_flag:
+        if change and can and not FIGHT:
             global all_objects, map_list
             all_objects = pygame.sprite.Group()
 
             if not pygame.mixer.Channel(sounds['door_open']).get_busy():
                 pygame.mixer.Channel(sounds['door_open']).play(pygame.mixer.Sound(
                     'data/music_and_sounds/sounds/map_sounds/door_open.mp3'))
-            
+
             main_text = ''
             self.room_number[what[0]] += what[1]
-            print(self.room_number, map_list[self.room_number[0]][self.room_number[1]][2])
             map_list[self.room_number[0]][self.room_number[1]][2] = 'visited'
 
-        print(self.room_number)
         if FIGHT:
             return False
         return can
 
 
+# Начало всего
+level = 1
+
+
 def pause():
     global pausing
-    sounds['steps'].stop()
+    pygame.mixer.Channel(sounds['steps']).stop()
     pausing = True
 
 
 def end():
     global ending
-    sounds['steps'].stop()
+    pygame.mixer.Channel(sounds['steps']).stop()
     ending = True
 
 
 class weapon_on_ground(pygame.sprite.Sprite):
     def __init__(self, x, y, name, melee_or_not):
-        super().__init__(items_group)
+        global room, OBJECTS
+        super().__init__(items_this_room_group)
         if melee_or_not:
             self.image = load_image(name, r'weapon\edged_weapons')
         else:
@@ -776,23 +756,35 @@ class weapon_on_ground(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
+        if room.this_room[0] in OBJECTS:
+            OBJECTS[room.this_room[0]].append(self)
+        else:
+            OBJECTS[room.this_room[0]] = [self]
 
     def update(self, *args, **kwargs):
         global player_group, player
         if pygame.sprite.spritecollide(self, player_group, False):
+            for i in OBJECTS:
+                for j in OBJECTS[i]:
+                    if j == self:
+                        print('del')
+                        OBJECTS[i].remove(j)
             self.kill()
 
 
 # Типы оружия
 melee_weapons = {
-    'usual_sword': {'damage': 20, 'CANMELEE': 0.1, 'hitbox_type': attack_rect, 'hitboxtime': 0.1, 'picture': 'usual_sword.png'},
-    'usual_hammer': {'damage': 40, 'CANMELEE': 1, 'hitbox_type': 'NEED', 'hitboxtime': 0.3, 'picture': 'usual_hammer.png'}
+    'usual_sword': {'damage': 20, 'CANMELEE': 0.1, 'hitbox_type': attack_rect, 'hitboxtime': 0.1,
+                    'picture': 'usual_sword.png'},
+    'usual_hammer': {'damage': 40, 'CANMELEE': 1, 'hitbox_type': 'NEED', 'hitboxtime': 0.3,
+                     'picture': 'usual_hammer.png'}
 }
 
 magic_weapons = {
     'usual_fireball': {'damage': 5, 'CANMELEE': 0.5, 'type': fireball, 'mana': 5, 'picture': 'fireball.png'},
     'usual_thunderbolt': {'damage': 15, 'CANMELEE': 0.3, 'type': 'NEED', 'mana': 10, 'picture': 'thunderbolt.png'}
 }
+
 
 # Начало программы
 def start():
@@ -806,9 +798,10 @@ def start():
     global main_text, text_size
     global text_tick, max_text_tick
     global text_coords, player
-    
+
     pygame.init()
     # Создание экрана
+    width, height = 1920, 1080
     screen_game = pygame.display.set_mode((1920, 1080))
     pygame.display.set_caption('Infinity Castle')
 
@@ -822,9 +815,18 @@ def start():
     pygame.mixer.music.load('data/music_and_sounds/music/game_standart.mp3')
     pygame.mixer.music.play(-1)
 
+    # Текст сверху
+    main_text = ''
+    text_tick = 0
+    max_text_tick = 0
+    text_size = 0
+    text_coords = 0
+
     # Звуки
     sounds = {}
-    
+    channels = 3
+    pygame.mixer.init(frequency=44100, size=-16, channels=channels, buffer=4096)
+
     sounds['steps'] = 1
     pygame.mixer.Channel(1)
 
@@ -833,13 +835,13 @@ def start():
 
     sounds['diffrent'] = 3
     pygame.mixer.Channel(3)
-    
+
     sounds['battle_start'] = pygame.mixer.find_channel()
 
     # Начало меню конца
     font = pygame.font.Font(None, 32)
     text = ['Вы погибли, ваш путь окончен...', 'Количество пройденных этажей: ' + 'text']
-    text_coord = 200
+    text_coord_ending = 200
 
     button_end_group = pygame.sprite.Group()
     Button('start_new_game.png', 300, 50, 800, 300, button_end_group)
@@ -864,11 +866,11 @@ def start():
     # Спрайт игрока и создание переменной комнаты
     player = Player()
     player_group = pygame.sprite.Group(player)
-    
+
     if level > 1:
         player.rect.x = 1425
         player.rect.y = 280
-        
+
     room = Room(map_list, room_number)
 
     # Курсор
@@ -881,12 +883,13 @@ def start():
     Border(300, height - 250, width - 300, height - 250)  # горизонт
     Border(300, 200, 300, height - 250)  # вертик
     Border(width - 300, 200, width - 300, height - 250)  # вертик
+
     usual_skeleton()
     weapon_on_ground(500, 500, 'usual_hammer.png', True)
-    
+
     # Изменение анимации у интерактивных объектов
     global chest
-    chest = Object('chest_animation_','map/chest', 900, 450, 150, 150, 5)
+    chest = Object('chest_animation_', 'map/chest', 900, 450, 150, 150, 5)
 
     # Основной цикл
     running = True
@@ -908,18 +911,14 @@ def start():
                 if event.type == pygame.KEYDOWN:
                     if event.unicode == SETTINGS['melee_weapon']:
                         player.melee_magic = 0
-                        print('a')
                     if event.unicode == SETTINGS['magic_weapon']:
                         player.melee_magic = 1
-                        print('b')
                     if event.unicode == SETTINGS['menu']:
                         pause()
                 if event.type == pygame.KEYUP:
                     player.action(event)
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     player.attack(event)
-                
-                
 
                 button_pause.update(event)
                 items_group.update(event)
@@ -933,12 +932,12 @@ def start():
             for line in text:
                 string_rendered = font.render(line, 1, pygame.Color('white'))
                 intro_rect = string_rendered.get_rect()
-                text_coord += 10
-                intro_rect.top = text_coord
+                text_coord_ending += 10
+                intro_rect.top = text_coord_ending
                 intro_rect.x = 700
-                text_coord += intro_rect.height
+                text_coord_ending += intro_rect.height
                 screen_game.blit(string_rendered, intro_rect)
-            text_coord = 200
+            text_coord_ending = 200
 
         else:
             if len(usual_skeletons_group) == 0:
@@ -962,17 +961,18 @@ def start():
             room.create()
             player.movement()
             player.update()
-            
+
             screen_game.blit(text_field, (590, 40))
 
             # Обновление экрана сверху
             if main_text != '':
-                if not(main_text == 'Пути назад уже нет' and map_list[room.room_number[0]][room.room_number[1]][0] != 'door_start'): 
+                if not (main_text == 'Пути назад уже нет' and map_list[room.room_number[0]][room.room_number[1]][
+                                      0] != 'door_start'):
                     show_main_text(text_size)
 
             screen_game.blit(pygame.font.Font('data/shrifts/main_shrift.ttf', 60).render(
                 f'Уровень: {level}', False, (20, 20, 20)), (1340, 880))
-            
+
             all_borders.draw(screen_game)
             button_pause.draw(screen_game)
 
@@ -981,6 +981,7 @@ def start():
             attack_group.update()
             coins_group.update()
             attack_usual_skeleton_group.update()
+            items_this_room_group.update()
 
             magic_group.draw(screen_game)
             usual_skeletons_group.draw(screen_game)
@@ -989,7 +990,7 @@ def start():
             attack_usual_skeleton_group.draw(screen_game)
 
             items_group.draw(screen_game)
-
+            items_this_room_group.draw(screen_game)
         clock.tick(FPS)
         pygame.display.flip()
 
