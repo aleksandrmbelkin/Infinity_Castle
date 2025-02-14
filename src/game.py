@@ -290,6 +290,9 @@ class Player(pygame.sprite.Sprite):
         self.lastfire = -5
         self.lastmelee = -1
 
+        # Последнее пополнение маны
+        self.lastmana = -2
+
         # Список с задетыми хит-боксами
         self.hitted = []
 
@@ -750,39 +753,131 @@ class weapon_on_ground(pygame.sprite.Sprite):
         global room, OBJECTS
         super().__init__(items_this_room_group)
         if melee_or_not:
-            self.image = load_image(name, r'weapon\edged_weapons')
+            self.image = load_image(name + '.png', r'weapon\edged_weapons')
         else:
-            self.image = load_image(name, r'weapon\magic')
+            self.image = load_image(name + '.png', r'weapon\magic')
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
+        self.name = name
         if room.this_room[0] in OBJECTS:
             OBJECTS[room.this_room[0]].append(self)
         else:
             OBJECTS[room.this_room[0]] = [self]
 
-    def update(self, *args, **kwargs):
+    def update(self, event):
         global player_group, player
         if pygame.sprite.spritecollide(self, player_group, False):
-            for i in OBJECTS:
-                for j in OBJECTS[i]:
-                    if j == self:
-                        print('del')
-                        OBJECTS[i].remove(j)
-            self.kill()
+            if event.type == pygame.KEYDOWN:
+                if event.unicode == SETTINGS['interaction']:
+                    for i in OBJECTS:
+                        for j in OBJECTS[i]:
+                            if j == self:
+                                print('del')
+                                OBJECTS[i].remove(j)
+                    if self.name in melee_weapons:
+                        weapon_on_ground(self.rect.x, self.rect.y, player.melee1['name'], True)
+                        player.melee1 = melee_weapons[self.name]
+                    else:
+                        weapon_on_ground(self.rect.x, self.rect.y, player.magic1['name'], False)
+                        player.magic1 = magic_weapons[self.name]
+                    self.kill()
+
+
+class Potion(pygame.sprite.Sprite):
+    def __init__(self, x, y, potion):
+        global room, OBJECTS
+        super().__init__(items_this_room_group)
+        self.image = load_image(f'{potion}.png', r'weapon/potions')
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+        self.potion = potion
+        if room.this_room[0] in OBJECTS:
+            OBJECTS[room.this_room[0]].append(self)
+        else:
+            OBJECTS[room.this_room[0]] = [self]
+
+    def update(self, event):
+        global player_group, player
+        if pygame.sprite.spritecollide(self, player_group, False):
+            if event.type == pygame.KEYDOWN:
+                if event.unicode == SETTINGS['interaction']:
+                    for i in OBJECTS:
+                        for j in OBJECTS[i]:
+                            if j == self:
+                                print('del')
+                                OBJECTS[i].remove(j)
+                    if self.potion == 'potion_mana':
+                        player.characteristics['unlocked_mana'] += 25
+                        player.characteristics['mana'] += 25
+                    elif self.potion == 'potion_hp':
+                        if player.characteristics['unlocked_hp'] + 1 <= 10:
+                            player.characteristics['unlocked_hp'] += 1
+                            player.characteristics['hp'] += 1
+                    self.kill()
+
+
+class Pricing(pygame.sprite.Sprite):
+    def __init__(self, x, y, name, tip, cost):
+        super().__init__(items_this_room_group)
+        self.image = pygame.Surface((250, 170), pygame.SRCALPHA, 32)
+        self.cost = cost
+        self.name = name
+        self.tip = tip
+        if tip == 'melee':
+            self.image_name = load_im([name, 100, 100], r'weapon\edged_weapons')
+        elif tip == 'magic':
+            self.image_name = load_im([name, 100, 100], r'weapon\magic')
+        elif tip == 'potions':
+            self.image_name = load_im([name, 100, 100], r'weapon\potions')
+        self.font = pygame.font.Font(None, 29)
+        self.surface1 = self.font.render(f'{name}', True, pygame.Color('White'))
+        self.surface2 = self.font.render(f'стоимость: {cost} монет(ы)', True, pygame.Color('White'))
+        self.image.blit(self.surface1, (5, 105))
+        self.image.blit(self.surface2, (0, 140))
+        self.image.blit(self.image_name, (5, 5))
+        self.rect = pygame.Rect(x, y, 20, 20)
+
+        if room.this_room[0] in OBJECTS:
+            OBJECTS[room.this_room[0]].append(self)
+        else:
+            OBJECTS[room.this_room[0]] = [self]
+
+    def update(self, event):
+        global player_group, player
+        if pygame.sprite.spritecollide(self, player_group, False):
+            if event.type == pygame.KEYDOWN:
+                if event.unicode == SETTINGS['interaction']:
+                    if player.characteristics['coins'] >= self.cost:
+                        for i in OBJECTS:
+                            for j in OBJECTS[i]:
+                                if j == self:
+                                    print('del')
+                                    OBJECTS[i].remove(j)
+                        if self.tip == 'melee':
+                            weapon_on_ground(self.rect.x, self.rect.y, self.name, True)
+                        elif self.tip == 'magic':
+                            weapon_on_ground(self.rect.x, self.rect.y, self.name, False)
+                        elif self.tip == 'potions':
+                            Potion(self.rect.x, self.rect.y, self.name)
+                        player.characteristics['coins'] -= self.cost
+                        self.kill()
 
 
 # Типы оружия
 melee_weapons = {
-    'usual_sword': {'damage': 20, 'CANMELEE': 0.1, 'hitbox_type': attack_rect, 'hitboxtime': 0.1,
+    'usual_sword': {'name': 'usual_sword', 'damage': 20, 'CANMELEE': 0.1, 'hitbox_type': attack_rect, 'hitboxtime': 0.1,
                     'picture': 'usual_sword.png'},
-    'usual_hammer': {'damage': 40, 'CANMELEE': 1, 'hitbox_type': 'NEED', 'hitboxtime': 0.3,
+    'usual_hammer': {'name': 'usual_hammer', 'damage': 40, 'CANMELEE': 1, 'hitbox_type': attack_rect, 'hitboxtime': 0.3,
                      'picture': 'usual_hammer.png'}
 }
 
 magic_weapons = {
-    'usual_fireball': {'damage': 5, 'CANMELEE': 0.5, 'type': fireball, 'mana': 5, 'picture': 'fireball.png'},
-    'usual_thunderbolt': {'damage': 15, 'CANMELEE': 0.3, 'type': 'NEED', 'mana': 10, 'picture': 'thunderbolt.png'}
+    'usual_fireball': {'name': 'usual_fireball', 'damage': 5, 'CANMELEE': 0.5, 'type': fireball,
+                       'mana': 5, 'picture': 'usual_fireball.png'},
+    'usual_thunderbolt': {'name': 'usual_thunderbolt', 'damage': 15, 'CANMELEE': 0.3, 'type': fireball,
+                          'mana': 10, 'picture': 'usual_thunderbolt.png'}
 }
 
 
@@ -885,7 +980,11 @@ def start():
     Border(width - 300, 200, width - 300, height - 250)  # вертик
 
     usual_skeleton()
-    weapon_on_ground(500, 500, 'usual_hammer.png', True)
+    weapon_on_ground(500, 500, 'usual_hammer', True)
+    weapon_on_ground(1300, 500, 'usual_thunderbolt', False)
+    Potion(1000, 600, 'potion_hp')
+    Potion(1000, 300, 'potion_mana')
+    Pricing(1100, 500, 'usual_sword', 'melee', 500)
 
     # Изменение анимации у интерактивных объектов
     global chest
@@ -921,7 +1020,7 @@ def start():
                     player.attack(event)
 
                 button_pause.update(event)
-                items_group.update(event)
+                items_this_room_group.update(event)
         # Загрузка настроек, создание комнтаты, обновление персонажа
         if pausing:
             pygame.draw.rect(screen_game, 'Black', (600, 200, 700, 500), 0)
@@ -947,6 +1046,10 @@ def start():
                 CANFIRE = True
             if time.process_time() - player.lastmelee >= player.melee1['CANMELEE']:
                 CANMELEE = True
+            if (time.process_time() - player.lastmana >= 2 and
+                    player.characteristics['mana'] < player.characteristics['unlocked_mana']):
+                player.characteristics['mana'] += 1
+                player.lastmana = time.process_time()
             for i in usual_skeletons_group:
                 if time.process_time() - i.lastmelee >= 1:
                     i.canmelee = True
@@ -981,7 +1084,6 @@ def start():
             attack_group.update()
             coins_group.update()
             attack_usual_skeleton_group.update()
-            items_this_room_group.update()
 
             magic_group.draw(screen_game)
             usual_skeletons_group.draw(screen_game)
