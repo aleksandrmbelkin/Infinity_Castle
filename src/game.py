@@ -396,11 +396,6 @@ class Player(pygame.sprite.Sprite):
                     i.kill()
                 for i in coins_group:
                     i.kill()
-                for i in items_this_room_group:
-                    i.remove(items_this_room_group)
-                if room.this_room[0] in OBJECTS:
-                    for i in OBJECTS[room.this_room[0]]:
-                        items_this_room_group.add(i)
 
             # Сундук
             if room.this_room[0] == 'chest':
@@ -589,16 +584,20 @@ class Room:
         self.map_list = map_list
         self.map_size = len(map_list)
 
+        self.random_weapon = random.choice(list(melee_weapons.keys()))
+        self.random_magic = random.choice(list(magic_weapons.keys()))
+        self.random_potion = random.choice(list(potions.keys()))
+        self.flag = False
+
         self.em_room = ['empty_room', 280, 190, 1355, 660]
         self.this_room = self.map_list[self.room_number[0]][self.room_number[1]]
 
     # Генерация комнаты
     def create(self):
-        global all_objects
+        global all_objects, FIGHT
         # Группа спрайтов объектов
         self.this_room = self.map_list[self.room_number[0]][self.room_number[1]]
         all_objects = pygame.sprite.Group()
-
         # Пустая комната
         screen_game.blit(em_room, (280, 190))
         # Двери
@@ -647,10 +646,11 @@ class Room:
             all_objects.add(stairs)
             screen_game.blit(stairs.image_fin, (stairs.rect.x, stairs.rect.y))
         # Комната с монстрами
-        elif self.this_room[0] == 'monsters':
+        elif 'monsters' in self.this_room[0]:
             if self.this_room[1] != 'used':
                 for _ in range(3):
                     usual_skeleton()
+                FIGHT = True
                 self.this_room[1] = 'used'
         # Аркадная комната
         elif self.this_room[0] == 'arcada':
@@ -681,43 +681,45 @@ class Room:
                 screen_game.blit(trader_upgrade.image_fin, (trader_upgrade.rect.x, trader_upgrade.rect.y))
 
             all_objects.add(table_1, table_2, table_3)
+            if not self.flag:
+                Pricing(table_1.rect.x, table_1.rect.y + 100, self.random_weapon, 'melee', melee_weapons[self.random_weapon]['cost'])
+                Pricing(table_2.rect.x, table_2.rect.y + 100, self.random_magic, 'magic', magic_weapons[self.random_magic]['cost'])
+                Pricing(table_3.rect.x, table_3.rect.y + 100, self.random_potion, 'potions', potions[self.random_potion]['cost'])
+                self.flag = True
             screen_game.blit(table_1.image_fin, (table_1.rect.x, table_1.rect.y))
             screen_game.blit(table_2.image_fin, (table_2.rect.x, table_2.rect.y))
             screen_game.blit(table_3.image_fin, (table_3.rect.x, table_3.rect.y))
 
     # Проверка наличия комнаты в месте куда вы хотите перейти и изменение номера вашей комнаты
     def change_room_number(self, where, change):
-        global main_text
+        global main_text, OBJECTS, items_this_room_group
         can = False
 
         if where == 'up':
             if (self.room_number[0] - 1 >= 0 and
                     self.map_list[self.room_number[0] - 1][self.room_number[1]][0] != 'no'):
-                self.room_number[0] -= 1
                 what = [0, -1]
                 can = True
         elif where == 'down':
             if (self.room_number[0] + 1 < self.map_size and
                     self.map_list[self.room_number[0] + 1][self.room_number[1]][0] != 'no'):
-                self.room_number[0] += 1
                 what = [0, 1]
                 can = True
         elif where == 'left':
             if (self.room_number[1] - 1 >= 0 and
                     self.map_list[self.room_number[0]][self.room_number[1] - 1][0] != 'no'):
-                self.room_number[1] -= 1
                 what = [1, -1]
                 can = True
         elif where == 'right':
             if (self.room_number[1] + 1 < self.map_size and
                     self.map_list[self.room_number[0]][self.room_number[1] + 1][0] != 'no'):
-                self.room_number[1] += 1
                 what = [1, 1]
                 can = True
 
         if change and can and not FIGHT:
             global all_objects, map_list
             all_objects = pygame.sprite.Group()
+            items_this_room_group.empty()
 
             if not pygame.mixer.Channel(sounds['door_open']).get_busy():
                 pygame.mixer.Channel(sounds['door_open']).play(pygame.mixer.Sound(
@@ -725,7 +727,21 @@ class Room:
 
             main_text = ''
             self.room_number[what[0]] += what[1]
+            self.this_room = self.map_list[self.room_number[0]][self.room_number[1]]
+            print(self.room_number, map_list[self.room_number[0]][self.room_number[1]][2])
+
+            a = []
+            for i in items_this_room_group:
+                a.append(i)
+            print(a)
+            print(OBJECTS)
+
             map_list[self.room_number[0]][self.room_number[1]][2] = 'visited'
+            print(self.this_room[0])
+            for i in OBJECTS:
+                if i == self.this_room[0]:
+                    for j in OBJECTS[i]:
+                        items_this_room_group.add(j)
 
         if FIGHT:
             return False
@@ -868,16 +884,21 @@ class Pricing(pygame.sprite.Sprite):
 # Типы оружия
 melee_weapons = {
     'usual_sword': {'name': 'usual_sword', 'damage': 20, 'CANMELEE': 0.1, 'hitbox_type': attack_rect, 'hitboxtime': 0.1,
-                    'picture': 'usual_sword.png'},
+                    'picture': 'usual_sword.png', 'cost': 100},
     'usual_hammer': {'name': 'usual_hammer', 'damage': 40, 'CANMELEE': 1, 'hitbox_type': attack_rect, 'hitboxtime': 0.3,
-                     'picture': 'usual_hammer.png'}
+                     'picture': 'usual_hammer.png', 'cost': 200}
 }
 
 magic_weapons = {
     'usual_fireball': {'name': 'usual_fireball', 'damage': 5, 'CANMELEE': 0.5, 'type': fireball,
-                       'mana': 5, 'picture': 'usual_fireball.png'},
+                       'mana': 5, 'picture': 'usual_fireball.png', 'cost': 150},
     'usual_thunderbolt': {'name': 'usual_thunderbolt', 'damage': 15, 'CANMELEE': 0.3, 'type': fireball,
-                          'mana': 10, 'picture': 'usual_thunderbolt.png'}
+                          'mana': 10, 'picture': 'usual_thunderbolt.png', 'cost': 250}
+}
+
+potions = {
+    'potion_hp': {'name': 'potion_hp', 'add': 10, 'max_add': 10, 'cost': 200},
+    'potion_mana': {'name': 'potion_mana', 'add': 10, 'max_add': 10, 'cost': 200}
 }
 
 
