@@ -25,8 +25,9 @@ def load_image(name, where, colorkey=None):
         image = image.convert_alpha()
     return image
 
+
 # Генерация карты
-def count_rooms(map_list, room): # Подсчет определенных комнат
+def count_rooms(map_list, room):  # Подсчет определенных комнат
     how_many = 0
     if room == 'special_room':
         for lst in map_list:
@@ -39,7 +40,7 @@ def count_rooms(map_list, room): # Подсчет определенных ко�
     return how_many
 
 
-def room_generation(map_list, level, how_many_rooms, i): # Выбор комнаты по критериям
+def room_generation(map_list, level, how_many_rooms, i):  # Выбор комнаты по критериям
     if i == how_many_rooms:
         if level % 10 != 0:
             return 'end'
@@ -48,8 +49,13 @@ def room_generation(map_list, level, how_many_rooms, i): # Выбор комна
     else:
         while True:
             chance = random.random()
-            if chance <= 0.50 and count_rooms(map_list, 'monsters') < how_many_rooms - 2:
-                return 'monsters'
+            total = 0
+            for i in map_list:
+                for j in i:
+                    if 'monsters' in j:
+                        total += 1
+            if chance <= 0.50 and total < how_many_rooms - 2:
+                return 'monsters' + str(total)
             elif (0.50 < chance <= 0.75 and count_rooms(map_list, 'chest') < 1
                   and count_rooms(map_list, 'special_room') < how_many_rooms * 0.5):
                 return 'chest'
@@ -67,7 +73,7 @@ def room_generation(map_list, level, how_many_rooms, i): # Выбор комна
                 return 'life_room'
 
 
-def map_generation(level, map_size): # Генерация карты
+def map_generation(level, map_size):  # Генерация карты
     how_many_rooms = random.randint(4, 7)
     map_list = [['no'] * map_size for _ in range(map_size)]
 
@@ -116,7 +122,7 @@ def map_generation(level, map_size): # Генерация карты
                         map_list[cell[0]][cell[1]] = room_generation(
                             map_list, level, how_many_rooms, i)
                         break
-    
+
     for i in range(len(map_list)):
         for k in range(len(map_list[i])):
             map_list[i][k] = [map_list[i][k], 'unused', 'unvisited']
