@@ -19,6 +19,9 @@ attack_usual_skeleton_group = pygame.sprite.Group()
 coins_group = pygame.sprite.Group()
 items_group = pygame.sprite.Group()
 items_this_room_group = pygame.sprite.Group()
+enemy_group = pygame.sprite.Group()
+enemy_attack_group = pygame.sprite.Group()
+boss_group = pygame.sprite.Group()
 
 FIGHT = False
 CANFIRE = True
@@ -157,15 +160,36 @@ class attack_rect(pygame.sprite.Sprite):
         self.rect = pygame.Rect(x, y, 50 * k, 100)
         self.timeappear = time.process_time()
 
+    def update(self, *args, **kwargs):
+        if pygame.sprite.spritecollide(self, enemy_group, False):
+            i = pygame.sprite.spritecollide(self, enemy_group, False)
+            for j in i:
+                if self not in j.hitted:
+                    j.hp -= player.melee1['damage']
+                    j.hitted.append(self)
+
 
 class attack_rect_usual_skeleton(pygame.sprite.Sprite):
     def __init__(self, x, y, k):
-        super().__init__(attack_usual_skeleton_group)
+        super().__init__(attack_usual_skeleton_group, enemy_attack_group)
         x += 25
         x += 40 * k
         self.image = pygame.Surface((40, 60), pygame.SRCALPHA, 32)
         pygame.draw.rect(self.image, pygame.Color('Black'), (0, 0, 40, 60))
         self.rect = pygame.Rect(x, y, 40 * k, 60)
+        self.damage = 1
+        self.livetime = 0.3
+        self.timeappear = time.process_time()
+
+
+class boss_attack_rect(pygame.sprite.Sprite):
+    def __init__(self, x, y, k):
+        super().__init__(enemy_attack_group)
+        self.image = pygame.Surface((200, 200), pygame.SRCALPHA, 32)
+        pygame.draw.rect(self.image, pygame.Color('Black'), (0, 0, 200, 200))
+        self.rect = pygame.Rect(x, y, 200 * k, 200)
+        self.damage = 2
+        self.livetime = 0.1
         self.timeappear = time.process_time()
 
 
@@ -183,34 +207,30 @@ class fireball(pygame.sprite.Sprite):
 
     def update(self, *args, **kwargs):
         self.rect = self.rect.move(round(self.speed * math.cos(self.angle)), round(self.speed * math.sin(self.angle)))
+        if pygame.sprite.spritecollide(self, enemy_group, False):
+            i = pygame.sprite.spritecollide(self, enemy_group, False)[0]
+            i.hp -= player.magic1['damage']
+            self.kill()
         if pygame.sprite.spritecollideany(self, all_borders) or pygame.sprite.spritecollideany(self, all_objects):
             self.kill()
 
 
 class usual_skeleton(pygame.sprite.Sprite):
-    def __init__(self):
-        super().__init__(usual_skeletons_group)
+    def __init__(self, x=random.randint(280, 1355), y=random.randint(190, 660)):
+        super().__init__(usual_skeletons_group, enemy_group)
         self.image = load_image('stop.png', r'characters\monsters\skeleton\usual_skeleton')
-        self.x = random.randint(280, 1355)
-        self.y = random.randint(190, 660)
+        self.x = x
+        self.y = y
         self.rect = pygame.Rect(self.x, self.y, 100, 100)
         self.hp = 100 * DIFFICULTY_MULTY
-        self.speed = 3
+        self.speed = 1
         self.canmelee = True
+        self.attackwait = 1
         self.lastmelee = -1
         self.hitted = []
 
     def update(self, *args, **kwargs):
         global player, player_group
-        if pygame.sprite.spritecollide(self, magic_group, False):
-            self.hp -= player.magic1['damage']
-            for i in pygame.sprite.spritecollide(self, magic_group, False):
-                i.kill()
-        if pygame.sprite.spritecollide(self, attack_group, False):
-            i = pygame.sprite.spritecollide(self, attack_group, False)[0]
-            if i not in self.hitted:
-                self.hp -= player.melee1['damage']
-                self.hitted.append(i)
         if pygame.sprite.spritecollideany(self, player_group) and self.canmelee:
             attack_rect_usual_skeleton(self.rect.x, self.rect.y, 1)
             self.canmelee = False
@@ -220,8 +240,303 @@ class usual_skeleton(pygame.sprite.Sprite):
         angl = math.atan2(y - self.rect.y, x - self.rect.x)
         self.rect = self.rect.move(round(self.speed * math.cos(angl)), round(self.speed * math.sin(angl)))
         if self.hp <= 0:
-            Coin(self.rect.x, self.rect.y)
+            Coin(self.rect.x + 50, self.rect.y + 50)
             self.kill()
+
+
+class Necromancer_boss_first(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__(enemy_group, boss_group)
+        self.image = load_image('first_stop0.png', 'characters/bosses/necromancer')
+        self.image = pygame.transform.scale(self.image, (200, 200))
+        self.rect = pygame.Rect(x, y, 200, 200)
+        self.hp = 1000 * DIFFICULTY_MULTY
+        self.speed = 2
+        self.hitted = []
+
+        self.attack_image_time = -1
+        self.lasttry_time = -1
+
+        self.lastmelee = -3
+        self.attackwait = 2
+
+        self.lastsummon = -10
+        self.summonwait = 5
+
+        self.lastarc = -1
+        self.arcwait = 2
+
+        self.target = [random.randint(300, 1700), random.randint(200, 800)]
+        self.angl = math.atan2(self.target[1] - self.rect.y, self.target[0] - self.rect.x)
+
+        self.stop_images = [load_image('first_stop' + str(i) + '.png', 'characters/bosses/necromancer') for i in range(2)]
+        self.stop_tick = 0
+
+        self.attack_images = [load_image('attack' + str(i) + '.png', 'characters/bosses/necromancer') for i in range(4)]
+        self.attack_tick = 0
+
+        self.summon_images = [load_image('summon' + str(i) + '.png', 'characters/bosses/necromancer') for i in range(2)]
+        self.summon_tick = 0
+
+        self.canmelee = True
+        self.cansummon = True
+        self.canarc = True
+
+    def update(self, *args, **kwargs):
+        global player, player_group
+        if pygame.sprite.spritecollide(self, player_group, False) and self.canmelee:
+            self.canmelee = False
+            self.lastmelee = time.process_time()
+            self.attack()
+        elif self.canmelee:
+            if time.process_time() - self.lasttry_time >= 2:
+                self.lasttry_time = time.process_time()
+                chance = random.random()
+                if chance <= 0.6 and self.cansummon:
+                    self.cansummon = False
+                    self.lastsummon = time.process_time()
+                    self.summon()
+        self.rect = self.rect.move(round(self.speed * math.cos(self.angl)), round(self.speed * math.sin(self.angl)))
+        if abs(self.target[0] - self.rect.x) <= 200 and abs(self.target[1] - self.rect.y) <= 200:
+            self.target = [random.randint(300, 1600), random.randint(200, 600)]
+            self.angl = math.atan2(self.target[1] - self.rect.y, self.target[0] - self.rect.x)
+        if not self.canmelee:
+            if time.process_time() - self.attack_image_time >= 0.3:
+                self.image = self.attack_images[self.attack_tick]
+                self.attack_tick += 1
+                self.attack_tick %= 4
+                self.attack_image_time = time.process_time()
+        elif not self.cansummon:
+            if time.process_time() - self.attack_image_time >= 0.2:
+                self.image = self.summon_images[self.summon_tick]
+                self.summon_tick += 1
+                self.summon_tick %= 2
+                self.attack_image_time = time.process_time()
+        else:
+            if time.process_time() - self.attack_image_time >= 0.1:
+                self.image = self.stop_images[self.stop_tick]
+                self.stop_tick += 1
+                self.stop_tick %= 2
+        if self.canarc:
+            x = random.randint(300, 1600)
+            Arc(x)
+            self.canarc = False
+            self.lastarc = time.process_time()
+
+        self.image = pygame.transform.scale(self.image, (200, 200))
+        screen_game.blit(self.image, (self.rect.x, self.rect.y))
+
+        if self.hp <= self.hp // 2:
+            Necromancer_boss_second(self.rect.x, self.rect.y)
+            self.kill()
+
+    def attack(self):
+        boss_attack_rect(self.rect.x, self.rect.y, 1)
+
+    def summon(self):
+        usual_skeleton(self.rect.x - 50, self.rect.y)
+        usual_skeleton(self.rect.x + 50, self.rect.y)
+
+
+class Arc(pygame.sprite.Sprite):
+    global arc0, arc1
+
+    def __init__(self, x):
+        super().__init__(enemy_attack_group)
+        self.image = arc0
+        self.rect = pygame.Rect(x, 770, 50, 50)
+        self.damage = 1
+
+        self.timeappear = time.process_time()
+        self.livetime = 100
+
+    def update(self, *args, **kwargs):
+        global player, player_group
+        if (pygame.sprite.spritecollide(self, player_group, False) or
+                pygame.sprite.spritecollide(self, all_borders, False)):
+            self.image = arc1
+            self.kill()
+        self.rect = self.rect.move(0, -2)
+
+
+class Necromancer_boss_second(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__(enemy_group, boss_group)
+        self.image = load_image('second_stop0.png', 'characters/bosses/necromancer')
+        self.image = pygame.transform.scale(self.image, (300, 300))
+        self.rect = pygame.Rect(x, y, 300, 300)
+        self.hp = 500 * DIFFICULTY_MULTY
+        self.speed = 5
+        self.hitted = []
+        self.lasttry_time = -1
+
+        self.lastmelee = -3
+        self.attackwait = 2
+
+        self.lastsummon = -10
+        self.summonwait = 7
+
+        self.lastarc = -1
+        self.arcwait = 1
+
+        self.lastskeleton = -1
+        self.skeletonwait = 1
+
+        self.lastflame = -1
+        self.flamewait = 3
+
+        self.target = [random.randint(300, 1700), random.randint(200, 800)]
+        self.angl = math.atan2(self.target[1] - self.rect.y, self.target[0] - self.rect.x)
+
+        self.stop_images = [load_image('second_stop' + str(i) + '.png', 'characters/bosses/necromancer') for i in
+                            range(2)]
+        self.stop_tick = 0
+
+        self.canmelee = True
+        self.cansummon = True
+        self.canarc = True
+        self.canskeleton = True
+        self.canflame = True
+
+        pygame.mixer.music.stop()
+        pygame.mixer.music.load('data/music_and_sounds/music/necromancer_second.mp3')
+        pygame.mixer.music.play(-1)
+
+    def update(self, *args, **kwargs):
+        global player, player_group
+        if pygame.sprite.spritecollide(self, player_group, False) and self.canmelee:
+            self.canmelee = False
+            self.lastmelee = time.process_time()
+            self.attack()
+        elif self.canmelee:
+            if time.process_time() - self.lasttry_time >= 0.5:
+                self.lasttry_time = time.process_time()
+                chance = random.random()
+                if chance <= 0.33 and self.cansummon:
+                    self.cansummon = False
+                    self.lastsummon = time.process_time()
+                    self.summon()
+        if self.canarc:
+            x = random.randint(300, 1600)
+            x1 = random.randint(300, 1600)
+            Arc(x)
+            Arc(x1)
+            self.canarc = False
+            self.lastarc = time.process_time()
+
+        if self.canskeleton:
+            summoned_skeleton(random.randint(300, 1600,), random.randint(200, 600))
+            self.canskeleton = False
+            self.lastskeleton = time.process_time()
+
+        if self.canflame:
+            summoned_flame(random.randint(300, 1600,), random.randint(200, 600))
+            self.canflame = False
+            self.lastflame = time.process_time()
+
+        self.rect = self.rect.move(round(self.speed * math.cos(self.angl)), round(self.speed * math.sin(self.angl)))
+        if abs(self.target[0] - self.rect.x) <= 200 and abs(self.target[1] - self.rect.y) <= 200:
+            self.target = [random.randint(300, 1600), random.randint(200, 600)]
+            self.angl = math.atan2(self.target[1] - self.rect.y, self.target[0] - self.rect.x)
+
+        self.image = self.stop_images[self.stop_tick]
+        self.stop_tick += 1
+        self.stop_tick %= 2
+        self.image = pygame.transform.scale(self.image, (200, 200))
+        screen_game.blit(self.image, (self.rect.x, self.rect.y))
+
+        if self.hp <= 0:
+            pygame.mixer.music.stop()
+            self.kill()
+
+    def attack(self):
+        boss_attack_rect(self.rect.x, self.rect.y, 1)
+
+    def summon(self):
+        usual_skeleton(self.rect.x - 50, self.rect.y)
+        usual_skeleton(self.rect.x + 50, self.rect.y)
+        usual_skeleton(self.rect.x, self.rect.y + 50)
+
+
+class summoned_skeleton(pygame.sprite.Sprite):
+    global summoned_skeleton_images
+
+    def __init__(self, x, y):
+        super().__init__(enemy_attack_group)
+        self.image = summoned_skeleton_images[0]
+        self.image = pygame.transform.scale(self.image, (150, 150))
+        self.rect = pygame.Rect(x, y, 100, 100)
+        self.image_tick = 0
+
+        self.damage = 1
+        self.livetime = 3
+        self.timeappear = time.process_time()
+        self.flag = False
+
+    def update(self, *args, **kwargs):
+        if time.process_time() - self.timeappear >= 1:
+            self.flag = True
+        if self.flag:
+            if time.process_time() - self.timeappear >= 0.5:
+                self.image_tick += 1
+                self.image_tick %= 3
+                self.image = summoned_skeleton_images[self.image_tick]
+                self.image = pygame.transform.scale(self.image, (150, 150))
+                self.timeappear = time.process_time()
+        if self.image_tick == 2 and self.timeappear >= 0.5:
+            self.kill()
+
+
+class summoned_flame(pygame.sprite.Sprite):
+    global summoned_flame_images
+
+    def __init__(self, x, y):
+        super().__init__(enemy_attack_group)
+        self.image_tick = 0
+        self.image = summoned_flame_images[self.image_tick]
+        self.image = pygame.transform.scale(self.image, (70, 70))
+        self.rect = pygame.Rect(x, y, 200, 200)
+
+        self.damage = 2
+        self.livetime = 2
+        self.timeappear = time.process_time()
+        self.flag = False
+
+    def update(self, *args, **kwargs):
+        if time.process_time() - self.timeappear >= 1:
+            self.flag = True
+            self.rect = self.rect.move(-70, -70)
+        if self.flag:
+            if time.process_time() - self.timeappear >= 0.1:
+                self.image_tick += 1
+                self.image_tick %= 4
+                self.image = summoned_flame_images[self.image_tick]
+                self.image = pygame.transform.scale(self.image, (200, 200))
+                self.timeappear = time.process_time()
+        if self.image_tick == 3:
+            self.kill()
+
+
+class boss_warning(pygame.sprite.Sprite):
+    def __init__(self, name, where):
+        super().__init__(enemy_attack_group)
+        self.image = load_image(name, where)
+        self.image = pygame.transform.scale(self.image, (700, 700))
+        self.rect = pygame.Rect(750, 200, 500, 500)
+        self.name = name
+        self.damage = 0
+        self.livetime = 100
+        self.timeappear = time.process_time()
+
+        pygame.mixer.music.stop()
+        pygame.mixer.music.load('data/music_and_sounds/music/necromancer_first.mp3')
+        pygame.mixer.music.play(-1)
+
+    def update(self, *args, **kwargs):
+        if 'necromancer' in self.name:
+            if time.process_time() - self.timeappear >= 5:
+                self.kill()
+                Necromancer_boss_first(1000, 400)
 
 
 class Border(pygame.sprite.Sprite):
@@ -309,7 +624,7 @@ class Player(pygame.sprite.Sprite):
         self.rect.y = self.y
 
         self.characteristics = {'coins': 999,
-                                'hp': 4,
+                                'hp': 40,
                                 'unlocked_hp': 4,
                                 'mana': 50,
                                 'unlocked_mana': 50}
@@ -367,6 +682,12 @@ class Player(pygame.sprite.Sprite):
 
     # Взаимодействия
     def action(self, event):
+        global main_text, text_size
+        global text_tick, max_text_tick
+        global text_coords, FIGHT
+        global all_borders, button_pause, pause_group, attack_group, magic_group, usual_skeletons_group, enemy_attack_group
+        global attack_usual_skeleton_group, coins_group, items_group, items_this_room_group, enemy_group, boss_group
+
         if event.key == ord(SETTINGS['interaction']):
             # Двери
             can = False
@@ -387,7 +708,7 @@ class Player(pygame.sprite.Sprite):
                 if can and not FIGHT:
                     self.rect.y = 765 - self.height
 
-            if can:
+            if can and not FIGHT:
                 for i in magic_group:
                     i.kill()
                 for i in usual_skeletons_group:
@@ -395,6 +716,10 @@ class Player(pygame.sprite.Sprite):
                 for i in attack_group:
                     i.kill()
                 for i in coins_group:
+                    i.kill()
+                for i in enemy_group:
+                    i.kill()
+                for i in enemy_attack_group:
                     i.kill()
 
             # Сундук
@@ -408,6 +733,7 @@ class Player(pygame.sprite.Sprite):
 
             # Стартовая комната 1 уровня
             elif room.this_room[0] == 'door_start':
+                map_list[room.room_number[0]][room.room_number[1]][2] = 'visited'
                 if self.rect.y <= 195 and 840 < self.rect.x < 1000:
                     main_text = 'Пути назад уже нет'
                     text_tick = 0
@@ -431,8 +757,29 @@ class Player(pygame.sprite.Sprite):
                         visited = True
 
                     if visited:
-                        global level
+                        global level, CANFIRE, CANMELEE, OBJECTS, all_objects
                         level += 1
+
+                        FIGHT = False
+                        CANFIRE = True
+                        CANMELEE = True
+                        OBJECTS = {}
+
+                        all_borders.empty()
+                        all_objects.empty()
+                        button_pause.empty()
+                        pause_group.empty()
+                        attack_group.empty()
+                        magic_group.empty()
+                        usual_skeletons_group.empty()
+                        attack_usual_skeleton_group.empty()
+                        coins_group.empty()
+                        items_group.empty()
+                        items_this_room_group.empty()
+                        enemy_group.empty()
+                        boss_group.empty()
+                        enemy_attack_group.empty()
+
                         start()
                     else:
                         main_text = 'Нужно проверить все комнаты'
@@ -440,7 +787,6 @@ class Player(pygame.sprite.Sprite):
                         max_text_tick = 120
                         text_size = 45
                         text_coords = [630, 110]
-
 
             # Аркадная комната
             elif room.this_room[0] == 'arcada':
@@ -568,11 +914,18 @@ class Player(pygame.sprite.Sprite):
             im = pygame.transform.scale(im, (self.width, self.height))
             screen_game.blit(im, (self.rect.x, self.rect.y))
             self.anim = 0
-        if pygame.sprite.spritecollide(self, attack_usual_skeleton_group, False):
-            for i in pygame.sprite.spritecollide(self, attack_usual_skeleton_group, False):
-                if i not in self.hitted:
-                    self.characteristics['hp'] -= 1
-                    self.hitted.append(i)
+        if pygame.sprite.spritecollide(self, enemy_attack_group, False):
+            for i in pygame.sprite.spritecollide(self, enemy_attack_group, False):
+                if 'summoned' in str(i):
+                    if i.image_tick != 0:
+                        if i not in self.hitted:
+                            print('dmg')
+                            self.characteristics['hp'] -= i.damage
+                            self.hitted.append(i)
+                else:
+                    if i not in self.hitted:
+                        self.characteristics['hp'] -= i.damage
+                        self.hitted.append(i)
         if self.characteristics['hp'] <= 0:
             end()
 
@@ -652,6 +1005,13 @@ class Room:
                     usual_skeleton()
                 FIGHT = True
                 self.this_room[1] = 'used'
+
+        # Комната с боссом
+        elif self.this_room[0] == 'boss':
+            if self.this_room[1] != 'used':
+                FIGHT = True
+                self.this_room[1] = 'used'
+                boss_warning('necromancer_warning.png', 'characters/bosses/necromancer')
         # Аркадная комната
         elif self.this_room[0] == 'arcada':
             all_objects.add(automat)
@@ -743,13 +1103,11 @@ class Room:
                     for j in OBJECTS[i]:
                         items_this_room_group.add(j)
 
-        if FIGHT:
-            return False
         return can
 
 
 # Начало всего
-level = 1
+level = 10
 
 
 def pause():
@@ -909,11 +1267,11 @@ def start():
     global sounds, map_list
     global running, pausing, ending
     global pause_group, player_group
-    global player
     global FIGHT, CANFIRE, CANMELEE
     global main_text, text_size
     global text_tick, max_text_tick
-    global text_coords, player
+    global text_coords, player, enemy_group
+    global arc0, arc1, summoned_flame_images, summoned_skeleton_images
 
     pygame.init()
     # Создание экрана
@@ -971,7 +1329,16 @@ def start():
     pausing = False
     ending = False
 
-    map_list, room_number = map_generation(level=1, map_size=4)
+    # Арки удара некроманта
+    arc0 = load_image('arc0.png', 'characters/bosses/necromancer')
+    arc1 = load_image('arc1.png', 'characters/bosses/necromancer')
+    # Спрайты фантомного скелета
+    summoned_skeleton_images = [load_image('skeleton_attack' + str(i) + '.png', 'characters/bosses/necromancer')
+                                for i in range(3)]
+    # Спрайты фантомного взрыва
+    summoned_flame_images = [load_image('boom' + str(i) + '.png', 'characters/bosses/necromancer') for i in range(4)]
+
+    map_list, room_number = map_generation(level=10, map_size=4)
 
     for i in map_list:
         for j in i:
@@ -1060,7 +1427,7 @@ def start():
             text_coord_ending = 200
 
         else:
-            if len(usual_skeletons_group) == 0:
+            if len(enemy_group) == 0:
                 FIGHT = False
 
             if time.process_time() - player.lastfire >= player.magic1['CANMELEE']:
@@ -1071,15 +1438,27 @@ def start():
                     player.characteristics['mana'] < player.characteristics['unlocked_mana']):
                 player.characteristics['mana'] += 1
                 player.lastmana = time.process_time()
-            for i in usual_skeletons_group:
-                if time.process_time() - i.lastmelee >= 1:
+            for i in enemy_group:
+                if time.process_time() - i.lastmelee >= i.attackwait:
                     i.canmelee = True
             for i in attack_group:
                 if time.process_time() - i.timeappear >= 0.1:
                     i.kill()
-            for i in attack_usual_skeleton_group:
-                if time.process_time() - i.timeappear >= 0.3:
+            for i in enemy_attack_group:
+                if time.process_time() - i.timeappear >= i.livetime:
                     i.kill()
+            for i in boss_group:
+                if time.process_time() - i.lastsummon >= i.summonwait:
+                    i.cansummon = True
+                if time.process_time() - i.lastarc >= i.arcwait:
+                    i.canarc = True
+                try:
+                    if time.process_time() - i.lastskeleton >= i.skeletonwait:
+                        i.canskeleton = True
+                    if time.process_time() - i.lastflame >= i.flamewait:
+                        i.canflame = True
+                except Exception:
+                    pass
             load_settings(channels)
             #        check_cursor(cursor_rect)
             room.create()
@@ -1087,15 +1466,6 @@ def start():
             player.update()
 
             screen_game.blit(text_field, (590, 40))
-
-            # Обновление экрана сверху
-            if main_text != '':
-                if not (main_text == 'Пути назад уже нет' and map_list[room.room_number[0]][room.room_number[1]][
-                                      0] != 'door_start'):
-                    show_main_text(text_size)
-
-            screen_game.blit(pygame.font.Font('data/shrifts/main_shrift.ttf', 60).render(
-                f'Уровень: {level}', False, (20, 20, 20)), (1340, 880))
 
             all_borders.draw(screen_game)
             button_pause.draw(screen_game)
@@ -1105,15 +1475,30 @@ def start():
             attack_group.update()
             coins_group.update()
             attack_usual_skeleton_group.update()
+            enemy_group.update()
+            enemy_attack_group.update()
+            boss_group.update()
 
             magic_group.draw(screen_game)
             usual_skeletons_group.draw(screen_game)
             attack_group.draw(screen_game)
             coins_group.draw(screen_game)
             attack_usual_skeleton_group.draw(screen_game)
+            enemy_group.draw(screen_game)
+            enemy_attack_group.draw(screen_game)
+            boss_group.draw(screen_game)
 
             items_group.draw(screen_game)
             items_this_room_group.draw(screen_game)
+
+            # Обновление экрана сверху
+            if main_text != '':
+                if not (main_text == 'Пути назад уже нет' and map_list[room.room_number[0]][room.room_number[1]][
+                                      0] != 'door_start'):
+                    show_main_text(text_size)
+            screen_game.blit(pygame.font.Font('data/shrifts/main_shrift.ttf', 60).render(
+                                            f'Уровень: {level}', False, (20, 20, 20)), (1340, 880))
+
         clock.tick(FPS)
         pygame.display.flip()
 
