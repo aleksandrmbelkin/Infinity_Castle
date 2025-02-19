@@ -32,7 +32,7 @@ class Object(pygame.sprite.Sprite):
 
         
 def load_im(im, where):
-    fullname = os.path.join(fr'data\pictures\{where}', f'{im[0]}.png')
+    fullname = os.path.join(f'data/pictures/{where}', f'{im[0]}.png')
     
     # если файл не существует, то выходим
     if not os.path.isfile(fullname):
@@ -95,3 +95,76 @@ automat = Object('arсada_', 'map', 905, 420, 150, 200, 0)
 
 # Конечная комната
 stairs = Object('down_', 'map/stairs', 1350, 195, 200, 200, 0)
+#-----------------------------------------------------------------------------------
+
+# Монстры:
+    # Рыцарь:
+        # Лево
+enemy_knight_left_0 = load_im(['left/jump_0', 150, 120], 'characters/monsters/enemy_knight')
+enemy_knight_left_1 = load_im(['left/jump_1', 150, 120], 'characters/monsters/enemy_knight')
+enemy_knight_left_2 = load_im(['left/jump_2', 150, 120], 'characters/monsters/enemy_knight')
+enemy_knight_left_3 = load_im(['left/jump_3', 150, 120], 'characters/monsters/enemy_knight')
+enemy_knight_left_4 = load_im(['left/jump_4', 150, 120], 'characters/monsters/enemy_knight')
+enemy_knight_left_5 = load_im(['left/jump_5', 150, 120], 'characters/monsters/enemy_knight')
+        # Право
+enemy_knight_right_0 = load_im(['right/jump_0', 150, 120], 'characters/monsters/enemy_knight')
+enemy_knight_right_1 = load_im(['right/jump_1', 150, 120], 'characters/monsters/enemy_knight')
+enemy_knight_right_2 = load_im(['right/jump_2', 150, 120], 'characters/monsters/enemy_knight')
+enemy_knight_right_3 = load_im(['right/jump_3', 150, 120], 'characters/monsters/enemy_knight')
+enemy_knight_right_4 = load_im(['right/jump_4', 150, 120], 'characters/monsters/enemy_knight')
+enemy_knight_right_5 = load_im(['right/jump_5', 150, 120], 'characters/monsters/enemy_knight')
+
+    # Скелет:
+        # Лево
+            # Движение
+skeleton_left_0 = load_im(['left/walk_0', 150, 120], 'characters/monsters/skeletons/skeleton')
+skeleton_left_1 = load_im(['left/walk_1', 150, 120], 'characters/monsters/skeletons/skeleton')
+skeleton_left_2 = load_im(['left/walk_2', 150, 120], 'characters/monsters/skeletons/skeleton')
+skeleton_left_3 = load_im(['left/walk_3', 150, 120], 'characters/monsters/skeletons/skeleton')
+skeleton_left_4 = load_im(['left/walk_4', 150, 120], 'characters/monsters/skeletons/skeleton')
+skeleton_left_5 = load_im(['left/walk_5', 150, 120], 'characters/monsters/skeletons/skeleton')
+skeleton_left_6 = load_im(['left/walk_6', 150, 120], 'characters/monsters/skeletons/skeleton')
+            # Атака
+skeleton_left_atack_0 = load_im(['left/attack_0', 150, 120], 'characters/monsters/skeletons/skeleton')
+skeleton_left_atack_1 = load_im(['left/attack_1', 150, 120], 'characters/monsters/skeletons/skeleton')
+skeleton_left_atack_2 = load_im(['left/attack_2', 150, 120], 'characters/monsters/skeletons/skeleton')
+skeleton_left_atack_3 = load_im(['left/attack_3', 150, 120], 'characters/monsters/skeletons/skeleton')
+skeleton_left_atack_4 = load_im(['left/attack_4', 150, 120], 'characters/monsters/skeletons/skeleton')
+        # Право
+            # Движение
+skeleton_right_0 = load_im(['right/walk_0', 150, 120], 'characters/monsters/skeletons/skeleton')
+skeleton_right_1 = load_im(['right/walk_1', 150, 120], 'characters/monsters/skeletons/skeleton')
+skeleton_right_2 = load_im(['right/walk_2', 150, 120], 'characters/monsters/skeletons/skeleton')
+skeleton_right_3 = load_im(['right/walk_3', 150, 120], 'characters/monsters/skeletons/skeleton')
+skeleton_right_4 = load_im(['right/walk_4', 150, 120], 'characters/monsters/skeletons/skeleton')
+skeleton_right_5 = load_im(['right/walk_5', 150, 120], 'characters/monsters/skeletons/skeleton')
+skeleton_right_6 = load_im(['right/walk_6', 150, 120], 'characters/monsters/skeletons/skeleton')
+            # Атака
+skeleton_right_atack_0 = load_im(['right/attack_0', 150, 120], 'characters/monsters/skeletons/skeleton')
+skeleton_right_atack_1 = load_im(['right/attack_1', 150, 120], 'characters/monsters/skeletons/skeleton')
+skeleton_right_atack_2 = load_im(['right/attack_2', 150, 120], 'characters/monsters/skeletons/skeleton')
+skeleton_right_atack_3 = load_im(['right/attack_3', 150, 120], 'characters/monsters/skeletons/skeleton')
+skeleton_right_atack_4 = load_im(['right/attack_4', 150, 120], 'characters/monsters/skeletons/skeleton')
+
+    # Скелет-лучник
+        # Стрела
+arrow = load_im(['arrow', 60, 10], 'characters/monsters/skeletons/archer')
+        # Лево
+archer_left_atack_0 = load_im(['left/attack_0', 150, 120], 'characters/monsters/skeletons/archer')
+archer_left_atack_1 = load_im(['left/attack_1', 150, 120], 'characters/monsters/skeletons/archer')
+archer_left_atack_2 = load_im(['left/attack_2', 150, 120], 'characters/monsters/skeletons/archer')
+archer_left_atack_3 = load_im(['left/attack_3', 150, 120], 'characters/monsters/skeletons/archer')
+archer_left_atack_4 = load_im(['left/attack_4', 150, 120], 'characters/monsters/skeletons/archer')
+archer_left_atack_5 = load_im(['left/attack_5', 150, 120], 'characters/monsters/skeletons/archer')
+archer_left_atack_6 = load_im(['left/attack_6', 150, 120], 'characters/monsters/skeletons/archer')
+archer_left_atack_7 = load_im(['left/attack_7', 150, 120], 'characters/monsters/skeletons/archer')
+        # Право
+archer_right_atack_0 = load_im(['right/attack_0', 150, 120], 'characters/monsters/skeletons/archer')
+archer_right_atack_1 = load_im(['right/attack_1', 150, 120], 'characters/monsters/skeletons/archer')
+archer_right_atack_2 = load_im(['right/attack_2', 150, 120], 'characters/monsters/skeletons/archer')
+archer_right_atack_3 = load_im(['right/attack_3', 150, 120], 'characters/monsters/skeletons/archer')
+archer_right_atack_4 = load_im(['right/attack_4', 150, 120], 'characters/monsters/skeletons/archer')
+archer_right_atack_5 = load_im(['right/attack_5', 150, 120], 'characters/monsters/skeletons/archer')
+archer_right_atack_6 = load_im(['right/attack_6', 150, 120], 'characters/monsters/skeletons/archer')
+archer_right_atack_7 = load_im(['right/attack_7', 150, 120], 'characters/monsters/skeletons/archer')
+#--------------------------------------------
