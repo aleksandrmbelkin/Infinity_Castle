@@ -49,13 +49,8 @@ def room_generation(map_list, level, how_many_rooms, i):  # Выбор комн�
     else:
         while True:
             chance = random.random()
-            total = 0
-            for i in map_list:
-                for j in i:
-                    if 'monsters' in j:
-                        total += 1
-            if chance <= 0.50 and total < how_many_rooms - 2:
-                return 'monsters' + str(total)
+            if chance <= 0.50 and count_rooms(map_list, 'monsters') < how_many_rooms - 2:
+                return 'monsters'
             elif (0.50 < chance <= 0.75 and count_rooms(map_list, 'chest') < 1
                   and count_rooms(map_list, 'special_room') < how_many_rooms * 0.5):
                 return 'chest'
