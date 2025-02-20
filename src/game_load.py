@@ -17,7 +17,7 @@ class Object(pygame.sprite.Sprite):
         self.height = height
 
         self.image_fin = load_im([f'{image}{self.animation}', self.width, self.height], where)
-
+        self.mask = pygame.mask.from_surface(self.image_fin)
         self.rect = self.image_fin.get_rect()
         self.rect.x = x
         self.rect.y = y
@@ -168,3 +168,24 @@ archer_right_atack_5 = load_im(['right/attack_5', 150, 120], 'characters/monster
 archer_right_atack_6 = load_im(['right/attack_6', 150, 120], 'characters/monsters/skeletons/archer')
 archer_right_atack_7 = load_im(['right/attack_7', 150, 120], 'characters/monsters/skeletons/archer')
 #--------------------------------------------
+
+# Интерфейс
+images = [['coin', 1330, 105, 70, 70], ['magic_frame', 470, 860, 120, 120], ['weapon_frame', 310, 855, 125, 125],
+     ['unfilled_HP', 605, 860, 720, 125], ['mana_bar', 300, 100, 60, 80]]
+
+fon = load_im(['background', 1920, 1980], 'interface')
+
+interface_images = []
+for image in images:
+    im = load_im([image[0], image[3], image[4]], 'interface')
+    interface_images.append([im, image[1], image[2]])
+
+# Арки удара некроманта
+arc0 = load_im(['arc0', 50, 50], 'characters/bosses/necromancer')
+arc1 = load_im(['arc1', 50, 50], 'characters/bosses/necromancer')
+# # Спрайты фантомного скелета
+# summoned_skeleton_images = [load_im('skeleton_attack' + str(i), 
+#                             'characters/bosses/necromancer') for i in range(3)]
+# # Спрайты фантомного взрыва
+# summoned_flame_images = [load_im('boom' + str(i), 
+#                          'characters/bosses/necromancer') for i in range(4)]
