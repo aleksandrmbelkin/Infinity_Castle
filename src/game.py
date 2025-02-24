@@ -1707,7 +1707,7 @@ potions = {
 
 
 # Уровень
-level = 10
+level = 1
 # Спрайт игрока
 player = Player()
 player_group = pygame.sprite.Group(player)
