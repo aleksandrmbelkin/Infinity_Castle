@@ -68,7 +68,7 @@ doors_close = [load_im(['doors/door_close_up', 100, 85], 'map'),
 em_room = load_im(['empty_room', 1355, 660], 'map') # Пустая
 big_door = load_im(['doors/big_door', 400, 100], 'map') # Дверь в начальной комнате 1 уровня
 stairs_image = load_im(['stairs/up', 120, 120], 'map') # Лестница в начальной комнате
-text_field = load_im(['text_field', 740, 140], 'interface') # Поле для текста
+text_field = load_im(['text_field', 710, 140], 'interface') # Поле для текста
 
 # Коллизии объектов
 # Комнаты магазинов
@@ -181,8 +181,8 @@ for image in images:
     interface_images.append([im, image[1], image[2]])
 
 # Арки удара некроманта
-arc0 = load_im(['arc0', 50, 50], 'characters/bosses/necromancer')
-arc1 = load_im(['arc1', 50, 50], 'characters/bosses/necromancer')
+arc0 = load_im(['arc0', 100, 50], 'characters/bosses/necromancer')
+arc1 = load_im(['arc1', 100, 50], 'characters/bosses/necromancer')
 # # Спрайты фантомного скелета
 # summoned_skeleton_images = [load_im('skeleton_attack' + str(i), 
 #                             'characters/bosses/necromancer') for i in range(3)]
