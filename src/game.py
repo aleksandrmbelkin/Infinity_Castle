@@ -14,8 +14,6 @@ button_pause = pygame.sprite.Group()
 pause_group = pygame.sprite.Group()
 attack_group = pygame.sprite.Group()
 magic_group = pygame.sprite.Group()
-usual_skeletons_group = pygame.sprite.Group()
-attack_usual_skeleton_group = pygame.sprite.Group()
 coins_group = pygame.sprite.Group()
 items_group = pygame.sprite.Group()
 items_this_room_group = pygame.sprite.Group()
@@ -42,10 +40,6 @@ images = [['coin', 1330, 105, 70, 70], ['magic_frame', 1335, 860, 120, 120],
 # Загрузка данных из настроек
 def load_settings(channels):
     global SETTINGS
-    # загрузка настроек из файла
-    # SETTINGS = ['sound 1', 'musik 1', 'forward w', 'left a', 'down s', 'right d', 'melee_weapon q', 'magic_weapon e',
-    #             'interaction f', 'menu esc']
-
     test = open('settings.txt')
     test.seek(0)
     SETTINGS = {}
@@ -68,49 +62,34 @@ def load_settings(channels):
 
 # Создание и выведение на экран интерфейса
 def interface():
-    fon = load_image('background.png', 'interface')
-    fon = pygame.transform.scale(fon, (1920, 1080))
+    global interface_images, fon
     screen_game.blit(fon, (0, 0))
 
     pygame.draw.rect(screen_game, pygame.Color('black'), (275, 185, 1365, 670))
     pygame.draw.rect(screen_game, pygame.Color('white'), (280, 190, 1355, 660))
 
-    for image in images:
-        im = load_image(f'{image[0]}.png', 'interface')
-        im = pygame.transform.scale(im, (image[3], image[4]))
-        screen_game.blit(im, (image[1], image[2]))
+    for image in interface_images:
+        screen_game.blit(image[0], (image[1], image[2]))
 
+def check_cursor(cursor_rect):
+    cursor_x, cursor_y = pygame.mouse.get_pos()
+    if not cursor_rect.collidepoint(cursor_x, cursor_y):
+        # Если курсор вышел за границы, возвращаем его обратно
+        cursor_x = max(cursor_rect.left, min(cursor_x, cursor_rect.right))
+        cursor_y = max(cursor_rect.top, min(cursor_y, cursor_rect.bottom))
+        pygame.mouse.set_pos(cursor_x, cursor_y)
 
-# Обновление изменяемых характеристик героя
-def update_hp_mana_coins(**characteristics):
-    screen_game.blit(field_for_coin_short, (1420, 110))
-    screen_game.blit(field_for_coin_long, (370, 110))
+def show_main_text(size):
+    global text_tick, main_text, text_coords
 
-    coin_font = pygame.font.Font('data/shrifts/coins_shrift.ttf', 50)
-    coin_text = coin_font.render(
-        str(characteristics['coins']), False, (20, 20, 20))
-    screen_game.blit(coin_text, (1475, 110))
+    main_font = pygame.font.Font('data/shrifts/main_shrift.ttf', size)
 
-    magic_font = pygame.font.Font('data/shrifts/coins_shrift.ttf', 50)
-    magic_text = magic_font.render(f'{str(characteristics["mana"])}',
-                                   False, (20, 20, 20))
-    screen_game.blit(magic_text, (395, 110))
-
-    magic_text = magic_font.render(f'/{str(characteristics["unlocked_mana"])}',
-                                   False, (20, 20, 20))
-    screen_game.blit(magic_text, (485, 110))
-
-    for i in range(characteristics['hp']):
-        hp_states_0_x = 643 + i * 64
-        screen_game.blit(hp_states[0], (hp_states_0_x, 897))
-
-    for i in range(10 - characteristics['hp']):
-        hp_states_1_x = 1219 - i * 64
-        screen_game.blit(hp_states[1], (hp_states_1_x, 897))
-
-    for i in range(10 - characteristics['unlocked_hp']):
-        hp_states_2_x = 1235 - i * 64
-        screen_game.blit(hp_states[2], (hp_states_2_x, 903))
+    if text_tick < max_text_tick:
+        final_main_text = main_font.render(main_text, False, (20, 20, 20))
+        screen_game.blit(final_main_text, (text_coords[0], text_coords[1]))
+        text_tick += 1
+    else:
+        main_text = ''
 
 
 class Button(pygame.sprite.Sprite):
@@ -128,9 +107,7 @@ class Button(pygame.sprite.Sprite):
     def update(self, *args):
         global running, pausing, pause_group
         if args and args[0].type == pygame.MOUSEBUTTONDOWN and self.rect.collidepoint(args[0].pos):
-            if self.button_type == 'points3.png':
-                pause()
-            elif self.button_type == 'continue.png':
+            if self.button_type == 'continue.png':
                 pausing = False
             elif self.button_type == 'menu_back.png':
                 for i in pause_group:
@@ -153,47 +130,13 @@ class Button(pygame.sprite.Sprite):
 class attack_rect(pygame.sprite.Sprite):
     def __init__(self, x, y, k, player):
         super().__init__(attack_group)
-        x += 25
-        x += 50 * k
-        self.image = pygame.Surface((50, 100), pygame.SRCALPHA, 32)
-        pygame.draw.rect(self.image, pygame.Color('Black'), (0, 0, 50, 100))
-        self.rect = pygame.Rect(x, y, 50 * k, 100)
-        self.timeappear = time.process_time()
-
-    def update(self, *args, **kwargs):
-        if pygame.sprite.spritecollide(self, enemy_group, False):
-            i = pygame.sprite.spritecollide(self, enemy_group, False)
-            for j in i:
-                if self not in j.hitted:
-                    j.hp -= player.melee1['damage']
-                    j.hitted.append(self)
-
-
-class attack_rect_usual_skeleton(pygame.sprite.Sprite):
-    def __init__(self, x, y, k):
-        super().__init__(attack_usual_skeleton_group, enemy_attack_group)
-        x += 25
-        x += 40 * k
-        pygame.mixer.Channel(sounds['enemy']).play(
-            pygame.mixer.Sound('data/music_and_sounds/sounds/weapon_hit/sword_hit1.mp3'))
-        self.image = pygame.Surface((40, 60), pygame.SRCALPHA, 32)
-        pygame.draw.rect(self.image, pygame.Color('Black'), (0, 0, 40, 60))
-        self.rect = pygame.Rect(x, y, 40 * k, 60)
-        self.damage = 1
-        self.livetime = 0.3
-        self.timeappear = time.process_time()
-
-
-class boss_attack_rect(pygame.sprite.Sprite):
-    def __init__(self, x, y, k):
-        super().__init__(enemy_attack_group)
-        pygame.mixer.Channel(sounds['enemy']).play(
-            pygame.mixer.Sound('data/music_and_sounds/sounds/weapon_hit/sword_hit2.mp3'))
-        self.image = pygame.Surface((200, 200), pygame.SRCALPHA, 32)
-        pygame.draw.rect(self.image, pygame.Color('Black'), (0, 0, 200, 200))
-        self.rect = pygame.Rect(x, y, 200 * k, 200)
-        self.damage = 2
-        self.livetime = 0.1
+        y += 10
+        if k == -1:
+            x -= 35
+        else:
+            x += 20
+        self.image = pygame.Surface((105, 100), pygame.SRCALPHA, 32)
+        self.rect = pygame.Rect(x, y, 105 * k, 100)
         self.timeappear = time.process_time()
 
 
@@ -205,18 +148,16 @@ class fireball(pygame.sprite.Sprite):
         self.image = pygame.Surface((20, 20), pygame.SRCALPHA, 32)
         pygame.draw.circle(self.image, pygame.Color("red"), center=(10, 10), radius=10)
         self.rect = pygame.Rect(x, y, 20, 20)
-
+        self.mask = pygame.mask.from_surface(self.image)
         self.angle = math.atan2(y1 - y, x1 - x)
-        self.speed = 20
+        self.speed = 1400
 
     def update(self, *args, **kwargs):
-        self.rect = self.rect.move(round(self.speed * math.cos(self.angle)), round(self.speed * math.sin(self.angle)))
-        if pygame.sprite.spritecollide(self, enemy_group, False):
-            i = pygame.sprite.spritecollide(self, enemy_group, False)[0]
-            i.hp -= player.magic1['damage']
-            self.kill()
-        if pygame.sprite.spritecollideany(self, all_borders) or pygame.sprite.spritecollideany(self, all_objects):
-            self.kill()
+        self.rect = self.rect.move(round(self.speed * math.cos(self.angle) * delta_time), round(self.speed * math.sin(self.angle) * delta_time))
+        if (pygame.sprite.spritecollideany(self, all_borders) or 
+            pygame.sprite.spritecollideany(self, all_objects) or 
+            pygame.sprite.spritecollide(self, enemy_group, False, pygame.sprite.collide_rect)):
+                self.kill()
 
 
 class thunderbolt(pygame.sprite.Sprite):
@@ -227,46 +168,16 @@ class thunderbolt(pygame.sprite.Sprite):
         self.image = pygame.Surface((20, 20), pygame.SRCALPHA, 32)
         pygame.draw.circle(self.image, pygame.Color("yellow"), center=(10, 10), radius=10)
         self.rect = pygame.Rect(x, y, 20, 20)
-
+        self.mask = pygame.mask.from_surface(self.image)
         self.angle = math.atan2(y1 - y, x1 - x)
-        self.speed = 20
+        self.speed = 700
 
     def update(self, *args, **kwargs):
-        self.rect = self.rect.move(round(self.speed * math.cos(self.angle)), round(self.speed * math.sin(self.angle)))
-        if pygame.sprite.spritecollide(self, enemy_group, False):
-            i = pygame.sprite.spritecollide(self, enemy_group, False)[0]
-            i.hp -= player.magic1['damage']
-            self.kill()
-        if pygame.sprite.spritecollideany(self, all_borders) or pygame.sprite.spritecollideany(self, all_objects):
-            self.kill()
-
-class usual_skeleton(pygame.sprite.Sprite):
-    def __init__(self, x=random.randint(280, 1355), y=random.randint(190, 660)):
-        super().__init__(usual_skeletons_group, enemy_group)
-        self.image = load_image('stop.png', r'characters\monsters\skeleton\usual_skeleton')
-        self.x = x
-        self.y = y
-        self.rect = pygame.Rect(self.x, self.y, 100, 100)
-        self.hp = 100 * DIFFICULTY_MULTY
-        self.speed = 1
-        self.canmelee = True
-        self.attackwait = 1
-        self.lastmelee = -1
-        self.hitted = []
-
-    def update(self, *args, **kwargs):
-        global player, player_group
-        if pygame.sprite.spritecollideany(self, player_group) and self.canmelee:
-            attack_rect_usual_skeleton(self.rect.x, self.rect.y, 1)
-            self.canmelee = False
-            self.lastmelee = time.process_time()
-        x = player.rect.x
-        y = player.rect.y
-        angl = math.atan2(y - self.rect.y, x - self.rect.x)
-        self.rect = self.rect.move(round(self.speed * math.cos(angl)), round(self.speed * math.sin(angl)))
-        if self.hp <= 0:
-            Coin(self.rect.x + 50, self.rect.y + 50)
-            self.kill()
+        self.rect = self.rect.move(round(self.speed * math.cos(self.angle) * delta_time), round(self.speed * math.sin(self.angle) * delta_time))
+        if (pygame.sprite.spritecollideany(self, all_borders) or 
+            pygame.sprite.spritecollideany(self, all_objects) or 
+            pygame.sprite.spritecollideany(self, enemy_group, pygame.sprite.collide_rect)):
+                self.kill()
 
 
 class Necromancer_boss_first(pygame.sprite.Sprite):
@@ -275,9 +186,14 @@ class Necromancer_boss_first(pygame.sprite.Sprite):
         self.image = load_image('first_stop0.png', 'characters/bosses/necromancer')
         self.image = pygame.transform.scale(self.image, (200, 200))
         self.rect = pygame.Rect(x, y, 200, 200)
-        self.hp = 1000 * DIFFICULTY_MULTY
-        self.speed = 2
+        self.hp = 300 * DIFFICULTY_MULTY
+        self.speed = 300
         self.hitted = []
+        self.mask = pygame.mask.from_surface(self.image)
+
+        self.attacked = False
+        self.attacked_time = 0
+        self.max_attacked_time = 10
 
         self.attack_image_time = -1
         self.lasttry_time = -1
@@ -309,7 +225,7 @@ class Necromancer_boss_first(pygame.sprite.Sprite):
 
     def update(self, *args, **kwargs):
         global player, player_group
-        if pygame.sprite.spritecollide(self, player_group, False) and self.canmelee:
+        if pygame.sprite.spritecollide(self, player_group, False, pygame.sprite.collide_mask) and self.canmelee:
             self.canmelee = False
             self.lastmelee = time.process_time()
             self.attack()
@@ -321,7 +237,7 @@ class Necromancer_boss_first(pygame.sprite.Sprite):
                     self.cansummon = False
                     self.lastsummon = time.process_time()
                     self.summon()
-        self.rect = self.rect.move(round(self.speed * math.cos(self.angl)), round(self.speed * math.sin(self.angl)))
+        self.rect = self.rect.move(round(self.speed * math.cos(self.angl) * delta_time), round(self.speed * math.sin(self.angl) * delta_time))
         if abs(self.target[0] - self.rect.x) <= 200 and abs(self.target[1] - self.rect.y) <= 200:
             self.target = [random.randint(300, 1600), random.randint(200, 600)]
             self.angl = math.atan2(self.target[1] - self.rect.y, self.target[0] - self.rect.x)
@@ -348,19 +264,45 @@ class Necromancer_boss_first(pygame.sprite.Sprite):
             self.canarc = False
             self.lastarc = time.process_time()
 
+        self.check_damage()
         self.image = pygame.transform.scale(self.image, (200, 200))
         screen_game.blit(self.image, (self.rect.x, self.rect.y))
+
+
+    def check_damage(self):
+        if pygame.sprite.spritecollide(self, attack_group, False, pygame.sprite.collide_rect) and not CANMELEE:
+            if not self.attacked:
+                self.attacked = True
+                self.hp -= player.melee1['damage']
+            else:
+                if self.attacked_time == self.max_attacked_time:
+                    self.attacked_time = -1
+                    self.attacked = False
+                self.attacked_time += 1
+
+        if pygame.sprite.spritecollide(self, magic_group, False, pygame.sprite.collide_rect):
+            if not self.attacked:
+                self.attacked = True
+                self.hp -= player.magic1['damage']
+            else:
+                if self.attacked_time == self.max_attacked_time:
+                    self.attacked_time = -1
+                    self.attacked = False
+                self.attacked_time += 1
 
         if self.hp <= self.hp // 2:
             Necromancer_boss_second(self.rect.x, self.rect.y)
             self.kill()
 
     def attack(self):
-        boss_attack_rect(self.rect.x, self.rect.y, 1)
+        if not pygame.mixer.Channel(sounds['hurt']).get_busy():
+            pygame.mixer.Channel(sounds['hurt']).play(pygame.mixer.Sound(
+                'data/music_and_sounds/sounds/main_hero_sounds/hurt.mp3'))
+            player.characteristics['all_hp'] -= 10
 
     def summon(self):
-        usual_skeleton(self.rect.x - 50, self.rect.y)
-        usual_skeleton(self.rect.x + 50, self.rect.y)
+        Skeleton(self.rect.x - 50, self.rect.y)
+        Skeleton(self.rect.x + 50, self.rect.y)
 
 
 class Arc(pygame.sprite.Sprite):
@@ -371,16 +313,25 @@ class Arc(pygame.sprite.Sprite):
         self.image = arc0
         self.rect = pygame.Rect(x, 770, 50, 50)
         self.damage = 1
+        self.mask = pygame.mask.from_surface(self.image)
 
         self.timeappear = time.process_time()
         self.livetime = 100
 
     def update(self, *args, **kwargs):
         global player, player_group
-        if (pygame.sprite.spritecollide(self, player_group, False) or
-                pygame.sprite.spritecollide(self, all_borders, False)):
+        if pygame.sprite.spritecollide(self, player_group, False, pygame.sprite.collide_mask):
+            self.image = arc1
+            if not pygame.mixer.Channel(sounds['hurt']).get_busy():
+                pygame.mixer.Channel(sounds['hurt']).play(pygame.mixer.Sound(
+                    'data/music_and_sounds/sounds/main_hero_sounds/hurt.mp3'))
+                player.characteristics['all_hp'] -= 5
+            self.kill()
+
+        if pygame.sprite.spritecollide(self, all_borders, False, pygame.sprite.collide_mask):
             self.image = arc1
             self.kill()
+            
         self.rect = self.rect.move(0, -2)
 
 
@@ -390,10 +341,15 @@ class Necromancer_boss_second(pygame.sprite.Sprite):
         self.image = load_image('second_stop0.png', 'characters/bosses/necromancer')
         self.image = pygame.transform.scale(self.image, (300, 300))
         self.rect = pygame.Rect(x, y, 300, 300)
-        self.hp = 500 * DIFFICULTY_MULTY
-        self.speed = 5
+        self.hp = 200 * DIFFICULTY_MULTY
+        self.speed = 500
         self.hitted = []
         self.lasttry_time = -1
+        self.mask = pygame.mask.from_surface(self.image)
+
+        self.attacked = False
+        self.attacked_time = 0
+        self.max_attacked_time = 10
 
         self.lastmelee = -3
         self.attackwait = 2
@@ -401,13 +357,13 @@ class Necromancer_boss_second(pygame.sprite.Sprite):
         self.lastsummon = -10
         self.summonwait = 7
 
-        self.lastarc = -1
-        self.arcwait = 1
+        self.lastarc = -3
+        self.arcwait = 3
 
-        self.lastskeleton = -1
-        self.skeletonwait = 1
+        self.lastskeleton = -3
+        self.skeletonwait = 3
 
-        self.lastflame = -1
+        self.lastflame = -2
         self.flamewait = 3
 
         self.target = [random.randint(300, 1700), random.randint(200, 800)]
@@ -416,6 +372,8 @@ class Necromancer_boss_second(pygame.sprite.Sprite):
         self.stop_images = [load_image('second_stop' + str(i) + '.png', 'characters/bosses/necromancer') for i in
                             range(2)]
         self.stop_tick = 0
+        self.timeappear = time.process_time()
+        self.image_tick = 0
 
         self.canmelee = True
         self.cansummon = True
@@ -431,7 +389,7 @@ class Necromancer_boss_second(pygame.sprite.Sprite):
     def update(self, *args, **kwargs):
         global player, player_group
         if not self.die:
-            if pygame.sprite.spritecollide(self, player_group, False) and self.canmelee:
+            if pygame.sprite.spritecollide(self, player_group, False, pygame.sprite.collide_mask) and self.canmelee:
                 self.canmelee = False
                 self.lastmelee = time.process_time()
                 self.attack()
@@ -452,7 +410,7 @@ class Necromancer_boss_second(pygame.sprite.Sprite):
                 self.lastarc = time.process_time()
 
             if self.canskeleton:
-                summoned_skeleton(random.randint(300, 1600,), random.randint(200, 600))
+                Skeleton(random.randint(300, 1600,), random.randint(200, 600))
                 self.canskeleton = False
                 self.lastskeleton = time.process_time()
 
@@ -461,7 +419,7 @@ class Necromancer_boss_second(pygame.sprite.Sprite):
                 self.canflame = False
                 self.lastflame = time.process_time()
 
-            self.rect = self.rect.move(round(self.speed * math.cos(self.angl)), round(self.speed * math.sin(self.angl)))
+            self.rect = self.rect.move(round(self.speed * math.cos(self.angl) * delta_time), round(self.speed * math.sin(self.angl) * delta_time))
             if abs(self.target[0] - self.rect.x) <= 200 and abs(self.target[1] - self.rect.y) <= 200:
                 self.target = [random.randint(300, 1600), random.randint(200, 600)]
                 self.angl = math.atan2(self.target[1] - self.rect.y, self.target[0] - self.rect.x)
@@ -469,59 +427,55 @@ class Necromancer_boss_second(pygame.sprite.Sprite):
         self.image = self.stop_images[self.stop_tick]
         self.stop_tick += 1
         self.stop_tick %= 2
+        self.check_damage()
         self.image = pygame.transform.scale(self.image, (200, 200))
         screen_game.blit(self.image, (self.rect.x, self.rect.y))
+    
+    def check_damage(self):
+        if pygame.sprite.spritecollide(self, attack_group, False, pygame.sprite.collide_rect) and not CANMELEE:
+            if not self.attacked:
+                self.attacked = True
+                self.hp -= player.melee1['damage']
+            else:
+                if self.attacked_time == self.max_attacked_time:
+                    self.attacked_time = -1
+                    self.attacked = False
+                self.attacked_time += 1
+
+        if pygame.sprite.spritecollide(self, magic_group, False, pygame.sprite.collide_rect):
+            if not self.attacked:
+                self.attacked = True
+                self.hp -= player.magic1['damage']
+            else:
+                if self.attacked_time == self.max_attacked_time:
+                    self.attacked_time = -1
+                    self.attacked = False
+                self.attacked_time += 1
 
         if self.hp <= 0:
             if not self.die:
                 self.timer = time.process_time()
                 summoned_flame(self.rect.x - 200, self.rect.y - 200, 700, 700)
-                for _ in range(50):
+                for _ in range(15):
                     Coin(random.randint(self.rect.x - 50, self.rect.x + 150), random.randint(self.rect.y - 50, self.rect.y + 150))
                 Potion(self.rect.x, self.rect.y, 'potion_hp')
             self.die = True
             if time.process_time() - self.timer >= 1.1:
                 self.kill()
                 pygame.mixer.music.stop()
+                global map_list
+                map_list[room.room_number[0]][room.room_number[1]][0] = 'end'
 
     def attack(self):
-        boss_attack_rect(self.rect.x, self.rect.y, 1)
+        if not pygame.mixer.Channel(sounds['hurt']).get_busy():
+            pygame.mixer.Channel(sounds['hurt']).play(pygame.mixer.Sound(
+                'data/music_and_sounds/sounds/main_hero_sounds/hurt.mp3'))
+            player.characteristics['all_hp'] -= 15
 
     def summon(self):
-        usual_skeleton(self.rect.x - 50, self.rect.y)
-        usual_skeleton(self.rect.x + 50, self.rect.y)
-        usual_skeleton(self.rect.x, self.rect.y + 50)
-
-
-class summoned_skeleton(pygame.sprite.Sprite):
-    global summoned_skeleton_images
-
-    def __init__(self, x, y):
-        super().__init__(enemy_attack_group)
-        pygame.mixer.Channel(sounds['winds']).play(
-            pygame.mixer.Sound('data/music_and_sounds/sounds/map_sounds/strong_wind.mp3'))
-        self.image = summoned_skeleton_images[0]
-        self.image = pygame.transform.scale(self.image, (150, 150))
-        self.rect = pygame.Rect(x, y, 100, 100)
-        self.image_tick = 0
-
-        self.damage = 1
-        self.livetime = 3
-        self.timeappear = time.process_time()
-        self.flag = False
-
-    def update(self, *args, **kwargs):
-        if time.process_time() - self.timeappear >= 1:
-            self.flag = True
-        if self.flag:
-            if time.process_time() - self.timeappear >= 0.5:
-                self.image_tick += 1
-                self.image_tick %= 3
-                self.image = summoned_skeleton_images[self.image_tick]
-                self.image = pygame.transform.scale(self.image, (150, 150))
-                self.timeappear = time.process_time()
-        if self.image_tick == 2 and self.timeappear >= 0.5:
-            self.kill()
+        Skeleton(self.rect.x - 50, self.rect.y)
+        Skeleton(self.rect.x + 50, self.rect.y)
+        Skeleton(self.rect.x, self.rect.y + 50)
 
 
 class summoned_flame(pygame.sprite.Sprite):
@@ -565,8 +519,11 @@ class boss_warning(pygame.sprite.Sprite):
         self.rect = pygame.Rect(750, 200, 500, 500)
         self.name = name
         self.damage = 0
-        self.livetime = 100
+        self.livetime = 3
         self.timeappear = time.process_time()
+
+        global warning
+        warning = True
 
         pygame.mixer.music.stop()
         pygame.mixer.music.load('data/music_and_sounds/music/necromancer_first.mp3')
@@ -574,7 +531,9 @@ class boss_warning(pygame.sprite.Sprite):
 
     def update(self, *args, **kwargs):
         if 'necromancer' in self.name:
-            if time.process_time() - self.timeappear >= 5:
+            if time.process_time() - self.timeappear >= 3:
+                global warning
+                warning = False
                 self.kill()
                 Necromancer_boss_first(1000, 400)
 
@@ -598,14 +557,15 @@ class Coin(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
+        self.mask = pygame.mask.from_surface(self.image)
 
     def update(self, *args, **kwargs):
         global player_group, player
-        if pygame.sprite.spritecollide(self, player_group, False):
+        if pygame.sprite.spritecollide(self, player_group, False, pygame.sprite.collide_mask):
             pygame.mixer.Channel(sounds['diffrent']).play(
                 pygame.mixer.Sound('data/music_and_sounds/sounds/main_hero_sounds/money.mp3'))
             self.kill()
-            player.characteristics['coins'] += 1
+            player.characteristics['coins'] += random.randint(1, 4)
 
 
 def show_main_text(size):
@@ -626,10 +586,10 @@ class Player(pygame.sprite.Sprite):
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
         self.x = 900
-        self.y = 350
+        self.y = 250
         self.width = 100
         self.height = 120
-        self.speed = 5
+        self.speed = 700
 
         self.animation_flag = False
         self.time_animation = 0
@@ -641,14 +601,11 @@ class Player(pygame.sprite.Sprite):
         self.magic1 = magic_weapons['usual_fireball']
 
         # Выбранное оружие (0 - первое, 1 - второе)
-        self.melee_magic = 1
+        self.melee_magic = 0
 
         # Последнее время атаки
         self.lastfire = -5
         self.lastmelee = -1
-
-        # Последнее пополнение маны
-        self.lastmana = -2
 
         # Список с задетыми хит-боксами
         self.hitted = []
@@ -656,20 +613,20 @@ class Player(pygame.sprite.Sprite):
         # Анимации
         self.form = f'{self.side_animation}/stop'
         self.attack_animation = ['atack_2.' + str(i) + '.png' for i in range(4)]
-        print(self.form)
-        self.image = load_image(f'{self.form}.png', 'characters/main_hero')
-        self.image = pygame.transform.scale(
-            self.image, (self.width, self.height))
+        self.image = load_im([f'{self.form}', self.width, self.height], 'characters/main_hero')
+        self.mask = pygame.mask.from_surface(self.image)
 
         self.rect = self.image.get_rect()
         self.rect.x = self.x
         self.rect.y = self.y
 
         self.characteristics = {'coins': 999,
-                                'hp': 40,
+                                'hp': 4,
                                 'unlocked_hp': 4,
+                                'hp_cell': 300,
+                                'all_hp': 1000,
                                 'mana': 50,
-                                'unlocked_mana': 50}
+                                'unlocked_mana': 50,}
 
     def movement(self):
         # Перемещение
@@ -677,38 +634,38 @@ class Player(pygame.sprite.Sprite):
         if not keys:
             return
         if keys[ord(SETTINGS['forward'])]:
-            if self.rect.y - self.speed >= 190:
-                self.rect.y -= self.speed
+            if self.rect.y - self.speed * delta_time>= 190:
+                self.rect.y -= self.speed * delta_time
                 self.animation_flag = True
                 if pygame.sprite.spritecollideany(self, all_objects):
-                    self.rect.y += self.speed
+                    self.rect.y += self.speed * delta_time
         if keys[ord(SETTINGS['down'])]:
-            if self.rect.y + self.height + self.speed <= 765:
-                self.rect.y += self.speed
+            if self.rect.y + self.height + self.speed * delta_time <= 765:
+                self.rect.y += self.speed * delta_time
                 self.animation_flag = True
                 if pygame.sprite.spritecollideany(self, all_objects):
-                    self.rect.y -= self.speed
+                    self.rect.y -= self.speed * delta_time
         if keys[ord(SETTINGS['left'])]:
-            if self.rect.x - self.speed >= 350:
-                self.rect.x -= self.speed
+            if self.rect.x - self.speed * delta_time >= 350:
+                self.rect.x -= self.speed * delta_time
                 self.animation_flag = True
                 self.side_animation = 'left'
                 if pygame.sprite.spritecollideany(self, all_objects):
-                    self.rect.x += self.speed
+                    self.rect.x += self.speed * delta_time
         if keys[ord(SETTINGS['right'])]:
-            if self.rect.x + self.width + self.speed <= 1550:
-                self.rect.x += self.speed
+            if self.rect.x + self.width + self.speed * delta_time <= 1550:
+                self.rect.x += self.speed * delta_time
                 self.animation_flag = True
                 self.side_animation = 'right'
                 if pygame.sprite.spritecollideany(self, all_objects):
-                    self.rect.x -= self.speed
+                    self.rect.x -= self.speed * delta_time
 
         # Смена анимации перемещения
         if self.animation_flag:
             self.form = f'{self.side_animation}/walk_{self.walk_animation}'
-            if self.time_animation == 7:
-                self.walk_animation = (self.walk_animation + 1) % 7
-            self.time_animation = (self.time_animation + 1) % 8
+            if self.time_animation == 3:
+                self.walk_animation = (self.walk_animation + 1) % 8
+            self.time_animation = (self.time_animation + 1) % 4
 
             if not pygame.mixer.Channel(sounds['steps']).get_busy():
                 pygame.mixer.Channel(sounds['steps']).play(pygame.mixer.Sound(
@@ -727,8 +684,8 @@ class Player(pygame.sprite.Sprite):
         global main_text, text_size
         global text_tick, max_text_tick
         global text_coords, FIGHT
-        global all_borders, button_pause, pause_group, attack_group, magic_group, usual_skeletons_group, enemy_attack_group
-        global attack_usual_skeleton_group, coins_group, items_group, items_this_room_group, enemy_group, boss_group
+        global all_borders, pause_group, attack_group, magic_group, enemy_attack_group
+        global coins_group, items_group, items_this_room_group, enemy_group, boss_group
 
         if event.key == ord(SETTINGS['interaction']):
             # Двери
@@ -753,8 +710,6 @@ class Player(pygame.sprite.Sprite):
             if can and not FIGHT:
                 for i in magic_group:
                     i.kill()
-                for i in usual_skeletons_group:
-                    i.kill()
                 for i in attack_group:
                     i.kill()
                 for i in coins_group:
@@ -772,17 +727,17 @@ class Player(pygame.sprite.Sprite):
                     if map_list[room.room_number[0]][room.room_number[1]][1] != 'used':
                         chance = random.random()
 
-                        if 0.5 <= chance < 0.7:
+                        if 0 <= chance < 0.7:
                             for _ in range(10):
                                 Coin(random.randint(self.rect.x - 20, self.rect.x + 20),
                                      random.randint(self.rect.y + 20, self.rect.y + 20))
-                        if 0.75 <= chance < 0.8:
+                        if 0.7 <= chance < 0.75:
                             weapon_on_ground(self.rect.x, self.rect.y + 20,
                                              melee_weapons[random.choice(list(melee_weapons.keys()))]['name'], True)
-                        if 0.85 <= chance < 0.9:
+                        if 0.75 <= chance < 0.8:
                             weapon_on_ground(self.rect.x, self.rect.y + 20,
                                              magic_weapons[random.choice(list(magic_weapons.keys()))]['name'], False)
-                        if 0.9 <= chance < 1:
+                        if 0.8 <= chance < 1:
                             Potion(self.rect.x, self.rect.y + 20, potions[random.choice(list(potions.keys()))]['name'])
 
                         if not pygame.mixer.Channel(sounds['diffrent']).get_busy():
@@ -825,12 +780,9 @@ class Player(pygame.sprite.Sprite):
 
                         all_borders.empty()
                         all_objects.empty()
-                        button_pause.empty()
                         pause_group.empty()
                         attack_group.empty()
                         magic_group.empty()
-                        usual_skeletons_group.empty()
-                        attack_usual_skeleton_group.empty()
                         coins_group.empty()
                         items_group.empty()
                         items_this_room_group.empty()
@@ -897,9 +849,9 @@ class Player(pygame.sprite.Sprite):
             # Комната жизни
             elif room.this_room[0] == 'life_room':
                 if map_list[room.room_number[0]][room.room_number[1]][1] != 'used':
-                    if ((395 <= self.rect.x <= 605 and 430 <= self.rect.y <= 565) or
-                            (590 <= self.rect.x <= 810 and 190 <= self.rect.y <= 325) or
-                            (800 <= self.rect.x <= 1010 and 445 <= self.rect.y <= 565)):
+                    if ((395 <= self.rect.x <= 605 and 430 <= self.rect.y <= 565) or 
+                        (590 <= self.rect.x <= 810 and 190 <= self.rect.y <= 325) or 
+                        (800 <= self.rect.x <= 1010 and 445 <= self.rect.y <= 565)):
 
                         map_list[room.room_number[0]][room.room_number[1]][1] = 'used'
                         chance = random.random()
@@ -911,8 +863,8 @@ class Player(pygame.sprite.Sprite):
                             elif 0.16 <= chance < 0.33:
                                 if player.characteristics['unlocked_hp'] + 1 <= 10:
                                     player.characteristics['unlocked_hp'] += 1
-                                    player.characteristics['hp'] += 1
-
+                                    player.characteristics['hp_all'] += player.characteristics['hp_cell']
+                            
                             main_text = 'Повезло...'
                             text_tick = 0
                             max_text_tick = 100
@@ -928,8 +880,8 @@ class Player(pygame.sprite.Sprite):
                             elif 0.66 <= chance <= 1:
                                 player.characteristics['unlocked_hp'] -= 1
                                 if player.characteristics['hp'] > player.characteristics['unlocked_hp']:
-                                    player.characteristics['hp'] = player.characteristics['unlocked_hp']
-
+                                    player.characteristics['all_hp'] -= player.characteristics['hp_cell']
+                            
                             main_text = 'Не повезло)'
                             text_tick = 0
                             max_text_tick = 100
@@ -967,7 +919,8 @@ class Player(pygame.sprite.Sprite):
 
     # Обновление изменяемых характеристик и картинки героя
     def update(self):
-        update_hp_mana_coins(**self.characteristics)
+        self.characteristics['hp'] = math.ceil(self.characteristics['all_hp'] / self.characteristics['hp_cell'])
+        self.update_hp_mana_coins()
         if not CANMELEE:
             if self.side_animation == 'right':
                 self.image = load_image(self.attack_animation[self.anim], r'characters\main_hero\right')
@@ -978,24 +931,44 @@ class Player(pygame.sprite.Sprite):
             self.anim %= 4
             screen_game.blit(self.image, (self.rect.x, self.rect.y))
         else:
-            im = load_image(f'{self.form}.png', 'characters/main_hero')
-            im = pygame.transform.scale(im, (self.width, self.height))
-            screen_game.blit(im, (self.rect.x, self.rect.y))
+            self.image = load_image(f'{self.form}.png', 'characters/main_hero')
+            self.image = pygame.transform.scale(self.image, (self.width, self.height))
+            screen_game.blit(self.image, (self.rect.x, self.rect.y))
             self.anim = 0
-        if pygame.sprite.spritecollide(self, enemy_attack_group, False):
-            for i in pygame.sprite.spritecollide(self, enemy_attack_group, False):
-                if 'summoned' in str(i):
-                    if i.image_tick != 0:
-                        if i not in self.hitted:
-                            print('dmg')
-                            self.characteristics['hp'] -= i.damage
-                            self.hitted.append(i)
-                else:
-                    if i not in self.hitted:
-                        self.characteristics['hp'] -= i.damage
-                        self.hitted.append(i)
-        if self.characteristics['hp'] <= 0:
+        self.mask = pygame.mask.from_surface(self.image)
+        if self.characteristics['all_hp'] <= 0:
             end()
+
+    # Обновление изменяемых характеристик героя
+    def update_hp_mana_coins(self):
+        screen_game.blit(field_for_coin_short, (1420, 110))
+        screen_game.blit(field_for_coin_long, (370, 110))
+
+        coin_font = pygame.font.Font('data/shrifts/coins_shrift.ttf', 50)
+        coin_text = coin_font.render(
+            str(self.characteristics['coins']), False, (20, 20, 20))
+        screen_game.blit(coin_text, (1475, 110))
+
+        magic_font = pygame.font.Font('data/shrifts/coins_shrift.ttf', 50)
+        magic_text = magic_font.render(f'{str(self.characteristics["mana"])}',
+                                    False, (20, 20, 20))
+        screen_game.blit(magic_text, (395, 110))
+
+        magic_text = magic_font.render(f'/{str(self.characteristics["unlocked_mana"])}',
+                                    False, (20, 20, 20))
+        screen_game.blit(magic_text, (485, 110))
+
+        for i in range(self.characteristics['hp']):
+            hp_states_0_x = 643 + i * 64
+            screen_game.blit(hp_states[0], (hp_states_0_x, 897))
+
+        for i in range(10 - self.characteristics['hp']):
+            hp_states_1_x = 1219 - i * 64
+            screen_game.blit(hp_states[1], (hp_states_1_x, 897))
+
+        for i in range(10 - self.characteristics['unlocked_hp']):
+            hp_states_2_x = 1235 - i * 64
+            screen_game.blit(hp_states[2], (hp_states_2_x, 903))
 
 
 class Room:
@@ -1013,14 +986,20 @@ class Room:
         self.em_room = ['empty_room', 280, 190, 1355, 660]
         self.this_room = self.map_list[self.room_number[0]][self.room_number[1]]
 
+        global FIGHT
+        FIGHT = False
+
     # Генерация комнаты
     def create(self):
         global all_objects, FIGHT
+
         # Группа спрайтов объектов
-        self.this_room = self.map_list[self.room_number[0]][self.room_number[1]]
         all_objects = pygame.sprite.Group()
+
         # Пустая комната
         screen_game.blit(em_room, (280, 190))
+        self.this_room = self.map_list[self.room_number[0]][self.room_number[1]]
+
         # Двери
         if FIGHT:
             if room.change_room_number('up', change=False):
@@ -1066,27 +1045,14 @@ class Room:
         elif self.this_room[0] == 'end':
             all_objects.add(stairs)
             screen_game.blit(stairs.image_fin, (stairs.rect.x, stairs.rect.y))
-        # Комната с монстрами
-        elif 'monsters' in self.this_room[0]:
-            if self.this_room[1] != 'used':
-                for _ in range(3):
-                    usual_skeleton()
-                FIGHT = True
-                self.this_room[1] = 'used'
 
-        # Комната с боссом
-        elif self.this_room[0] == 'boss':
-            if self.this_room[1] != 'used':
-                FIGHT = True
-                self.this_room[1] = 'used'
-                boss_warning('necromancer_warning.png', 'characters/bosses/necromancer')
         # Аркадная комната
         elif self.this_room[0] == 'arcada':
             all_objects.add(automat)
             screen_game.blit(automat.image_fin, (automat.rect.x, automat.rect.y))
 
+        # Комната жизни
         elif room.this_room[0] == 'life_room':
-            all_objects.add(death)
             screen_game.blit(death.image_fin, (death.rect.x, death.rect.y))
 
             all_objects.add(table_1, table_2, table_3)
@@ -1099,13 +1065,12 @@ class Room:
                 screen_game.blit(dark_sphere_1.image_fin, (dark_sphere_1.rect.x, dark_sphere_1.rect.y))
                 screen_game.blit(dark_sphere_2.image_fin, (dark_sphere_2.rect.x, dark_sphere_2.rect.y))
                 screen_game.blit(dark_sphere_3.image_fin, (dark_sphere_3.rect.x, dark_sphere_3.rect.y))
-
+        
+        # Магазины
         elif room.this_room[0] == 'shop' or room.this_room[0] == 'upgrade_shop':
             if room.this_room[0] == 'shop':
-                all_objects.add(trader_shop)
                 screen_game.blit(trader_shop.image_fin, (trader_shop.rect.x, trader_shop.rect.y))
             else:
-                all_objects.add(trader_upgrade)
                 screen_game.blit(trader_upgrade.image_fin, (trader_upgrade.rect.x, trader_upgrade.rect.y))
 
             all_objects.add(table_1, table_2, table_3)
@@ -1120,6 +1085,36 @@ class Room:
             screen_game.blit(table_1.image_fin, (table_1.rect.x, table_1.rect.y))
             screen_game.blit(table_2.image_fin, (table_2.rect.x, table_2.rect.y))
             screen_game.blit(table_3.image_fin, (table_3.rect.x, table_3.rect.y))
+
+        # Комната монстров
+        elif room.this_room[0] == 'monsters':
+            if room.this_room[1] != 'used':
+                global all_monsters, arrows
+                # Группа спрайтов мостров
+                all_monsters = []
+                FIGHT = True
+                room.this_room[1] = 'used'
+
+                for _ in range(random.randint(1, 2)):
+                    all_monsters.append(Enemy_Knight())
+                    
+                for _ in range(random.randint(2, 3)):
+                    all_monsters.append((Skeleton(random.randint(350, 1450), random.randint(190, 645))))
+                
+                for _ in range(random.randint(1, 2)):
+                    all_monsters.append((Archer()))
+                    arrows = pygame.sprite.Group()
+            
+        
+        # Комната с боссом
+        elif self.this_room[0] == 'boss':
+            if self.this_room[1] != 'used':
+                FIGHT = True
+                self.this_room[1] = 'used'
+                boss_warning('necromancer_warning.png', 'characters/bosses/necromancer')
+        
+        map_list[room.room_number[0]][room.room_number[1]][2] = 'visited'
+
 
     # Проверка наличия комнаты в месте куда вы хотите перейти и изменение номера вашей комнаты
     def change_room_number(self, where, change):
@@ -1159,16 +1154,12 @@ class Room:
             main_text = ''
             self.room_number[what[0]] += what[1]
             self.this_room = self.map_list[self.room_number[0]][self.room_number[1]]
-            print(self.room_number, map_list[self.room_number[0]][self.room_number[1]][2])
 
             a = []
             for i in items_this_room_group:
                 a.append(i)
-            print(a)
-            print(OBJECTS)
 
             map_list[self.room_number[0]][self.room_number[1]][2] = 'visited'
-            print(self.this_room[0])
             for i in OBJECTS:
                 if i == self.this_room[0]:
                     for j in OBJECTS[i]:
@@ -1177,8 +1168,381 @@ class Room:
         return can
 
 
-# Начало всего
-level = 10
+class Monsters(pygame.sprite.Sprite):
+    # Инициализация начальных характеристик монстров
+    def __init__(self):
+        pygame.sprite.Sprite.__init__(self, enemy_group)
+        self.x = random.randint(350, 1450)
+        self.y = random.randint(190, 645)
+
+        self.animation_flag = False
+        self.time_animation = 0
+        self.side_animation = 1
+        self.walk_animation = 0
+
+        self.attack_wait_tick = 0
+        self.attacked = False
+        self.attacked_time = 0
+        self.max_attacked_time = 10
+        
+        self.run = False
+
+        self.life = True
+        self.form = [self.side_animation, self.walk_animation]
+
+    # Получение урона
+    def check_damage(self):
+        if pygame.sprite.spritecollide(self, attack_group, False, pygame.sprite.collide_rect) and not CANMELEE:
+            if not self.attacked:
+                self.attacked = True
+                self.characteristics['hp'] -= player.melee1['damage']
+            else:
+                if self.attacked_time == self.max_attacked_time:
+                    self.attacked_time = -1
+                    self.attacked = False
+                self.attacked_time += 1
+
+        if pygame.sprite.spritecollide(self, magic_group, False, pygame.sprite.collide_rect):
+            if not self.attacked:
+                self.attacked = True
+                self.characteristics['hp'] -= player.magic1['damage']
+            else:
+                if self.attacked_time == self.max_attacked_time:
+                    self.attacked_time = -1
+                    self.attacked = False
+                self.attacked_time += 1
+
+        if self.characteristics['hp'] <= 0:
+            Coin(self.rect.x + 50, self.rect.y + 50)
+            self.kill()
+    
+
+class Skeleton(Monsters):
+    def __init__(self, x, y):
+        Monsters.__init__(self)
+        self.animations = [[[skeleton_left_0, skeleton_left_1, skeleton_left_2, 
+                            skeleton_left_3, skeleton_left_4, skeleton_left_5, skeleton_left_6],
+                            [skeleton_left_atack_0, skeleton_left_atack_1,
+                             skeleton_left_atack_2, skeleton_left_atack_3, skeleton_left_atack_4]],
+
+                           [[skeleton_right_0, skeleton_right_1, skeleton_right_2, 
+                            skeleton_right_3, skeleton_right_4, skeleton_right_5, skeleton_right_6],
+                            [skeleton_left_atack_0, skeleton_left_atack_1,
+                             skeleton_left_atack_2, skeleton_left_atack_3, skeleton_left_atack_4]]]
+
+        self.image = self.animations[1][0][0]
+        self.mask = pygame.mask.from_surface(self.image)
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+        self.speed = 600
+
+        self.attack = False
+        self.walk_time = 0
+        self.max_walk_time = random.randint(30, 100)
+
+        self.walk_wait_tick = 0
+        self.max_walk_wait_tick = random.randint(20, 60)
+
+        self.time_animation_attack = 0
+        self.max_time_animation_attack = 3
+        self.attack_animation = 0
+
+        self.characteristics = {'hp': 40,
+                                'damage': 5}
+
+    def update(self):
+        self.player_x = player.rect.x
+        self.player_y = player.rect.y
+
+        # Вычисление пути
+        dx = self.player_x - self.rect.x
+        dy = self.player_y - self.rect.y
+        distance = math.hypot(dx, dy)
+
+        if distance > 0:
+            self.dis_x = dx / distance
+            self.dis_y = dy / distance
+
+        # Окончание ожидания
+        if self.walk_wait_tick == self.max_walk_wait_tick:
+            self.run = True
+
+        self.max_time_animation = 3
+
+        if self.run:
+            # Перемещение к игроку
+            if (350 < self.rect.x + self.dis_x * self.speed * delta_time < 1450 and 
+                190 < self.rect.y + self.dis_y * self.speed * delta_time < 645):
+                    self.rect.x += self.dis_x * self.speed * delta_time
+                    self.rect.y += self.dis_y * self.speed * delta_time
+
+            # Анимация ходьбы
+            self.form = [self.side_animation, self.walk_animation]
+            if self.time_animation == self.max_time_animation:
+                self.walk_animation = (self.walk_animation + 1) % 7
+
+            self.walk_time += 1
+            # Конец ходьбы
+            if self.walk_time == self.max_walk_time:
+                self.run = False
+                self.walk_time = 0
+                self.walk_wait_tick = 0
+                self.max_walk_wait_tick = random.randint(50, 150)
+                self.max_walk_time = random.randint(30, 100)
+
+            # Атака
+            if pygame.sprite.collide_mask(self, player):
+                self.run = False
+                self.attack = True
+                self.walk_wait_tick = 0
+                if not pygame.mixer.Channel(sounds['hurt']).get_busy():
+                    pygame.mixer.Channel(sounds['hurt']).play(pygame.mixer.Sound(
+                        'data/music_and_sounds/sounds/main_hero_sounds/hurt.mp3'))
+                    player.characteristics['all_hp'] -= self.characteristics['damage']
+        else:
+            # Анимация стояния на месте
+            self.form = [self.side_animation, 0]
+            self.time_animation = 0
+
+        # Поворот к игроку
+        if self.rect.x < player.rect.x:
+            self.side_animation = 1
+        else:
+            self.side_animation = 0
+
+        # Анимация атаки
+        if self.attack:
+            if self.time_animation_attack == self.max_time_animation_attack:
+                self.time_animation_attack = 0
+                self.attack_animation += 1
+                if self.attack_animation % 5 == 0:
+                    self.attack_animation %= 5
+                    self.attack = False
+                    self.time_animation_attack = 0
+            self.time_animation_attack += 1
+
+        # Отображение анимации
+        if self.attack:
+            self.image = self.animations[self.form[0]][1][self.attack_animation]
+            self.mask = pygame.mask.from_surface(self.animations[self.form[0]][1][self.attack_animation])
+        else:
+            self.image = self.animations[self.form[0]][0][self.form[1]]
+            self.mask = pygame.mask.from_surface(self.animations[self.form[0]][0][self.form[1]])
+
+        self.time_animation = (self.time_animation + 1) % (self.max_time_animation + 1)
+        
+        if not self.attack:
+            self.walk_wait_tick += 1
+        
+        self.check_damage()
+
+
+
+class Enemy_Knight(Monsters):
+    def __init__(self):
+        Monsters.__init__(self)
+        self.animations = [[enemy_knight_left_0, enemy_knight_left_1, enemy_knight_left_2, 
+                            enemy_knight_left_3, enemy_knight_left_4, enemy_knight_left_5],
+                           [enemy_knight_right_0, enemy_knight_right_1, enemy_knight_right_2, 
+                            enemy_knight_right_3, enemy_knight_right_4, enemy_knight_right_5]]
+
+        self.image = self.animations[1][0]
+        self.mask = pygame.mask.from_surface(self.image)
+        self.rect = self.image.get_rect()
+        self.rect.x = self.x
+        self.rect.y = self.y
+
+        self.speed = 1300
+        self.max_attack_wait_tick = random.randint(20, 60)
+
+        self.characteristics = {'hp': 20,
+                                'damage': 5}
+
+    def update(self):
+        # Окончание ожидания
+        if self.attack_wait_tick == self.max_attack_wait_tick:
+            self.run = True
+            self.player_x = player.rect.x
+            self.player_y = player.rect.y
+
+            # Вычисление пути
+            dx = self.player_x - self.rect.x
+            dy = self.player_y - self.rect.y
+            distance = math.hypot(dx, dy)
+
+            if distance > 0:
+                self.dis_x = dx / distance
+                self.dis_y = dy / distance
+
+            # Вычисление анимации
+            self.max_time_animation = int(abs(dx / (self.dis_x * self.speed * delta_time)) / 5)
+
+        if self.run:
+            # Перемещение к игроку
+            if (350 < self.rect.x + self.dis_x * self.speed * delta_time < 1450 and 
+                190 < self.rect.y + self.dis_y * self.speed * delta_time < 645):
+                    self.rect.x += self.dis_x * self.speed * delta_time
+                    self.rect.y += self.dis_y * self.speed * delta_time
+
+            # Анимация прыжка
+            self.form = [self.side_animation, self.walk_animation]
+            if self.time_animation == self.max_time_animation:
+                self.walk_animation = (self.walk_animation + 1) % 6
+
+            # Конец прыжка
+            if not (350 + self.speed * delta_time <= self.rect.x <= 1450 - self.speed * delta_time and
+                    190 + self.speed * delta_time <= self.rect.y <= 645 - self.speed * delta_time):
+                        self.run = False
+                        self.attack_wait_tick = 0
+                        self.max_attack_wait_tick = random.randint(75, 150)
+
+            # Атака
+            if pygame.sprite.collide_mask(self, player):
+                if not pygame.mixer.Channel(sounds['hurt']).get_busy():
+                    pygame.mixer.Channel(sounds['hurt']).play(pygame.mixer.Sound(
+                        'data/music_and_sounds/sounds/main_hero_sounds/hurt.mp3'))
+                    player.characteristics['all_hp'] -= self.characteristics['damage']
+                            
+            self.time_animation = (self.time_animation + 1) % (self.max_time_animation + 1)
+        else:
+            # Анимация стояния на месте
+            self.form = [self.side_animation, 0]
+            self.time_animation = 0
+
+            # Поворот к игроку
+            if self.rect.x < player.rect.x:
+                self.side_animation = 1
+            else:
+                self.side_animation = 0
+
+        # Отображение анимации
+        self.image = self.animations[self.form[0]][self.form[1]]
+        self.mask = pygame.mask.from_surface(self.animations[self.form[0]][self.form[1]])
+
+        self.attack_wait_tick += 1
+        
+        self.check_damage()
+
+
+class Archer(Monsters):
+    def __init__(self):
+        Monsters.__init__(self)
+        self.animations = [[archer_left_atack_0, archer_left_atack_1, archer_left_atack_2, archer_left_atack_3, 
+                            archer_left_atack_4, archer_left_atack_5, archer_left_atack_6, archer_left_atack_7],
+
+                            [archer_right_atack_0, archer_right_atack_1, archer_right_atack_2, archer_right_atack_3, 
+                             archer_right_atack_4, archer_right_atack_5, archer_right_atack_6, archer_right_atack_7]]
+
+        self.image = self.animations[1][0]
+        self.mask = pygame.mask.from_surface(self.image)
+        self.rect = self.image.get_rect()
+
+        chance = random.random()
+
+        if chance < 0.25:
+            self.x = 380
+            self.y = 220
+        elif 0.25 <= chance < 0.50:
+            self.x = 1390
+            self.y = 220
+        elif 0.50 <= chance < 0.75:
+            self.x = 1390
+            self.y = 650
+        else:
+            self.x = 380
+            self.y = 650
+
+        self.rect.x = self.x
+        self.rect.y = self.y
+
+        self.attack = False
+        self.max_attack_wait_tick = random.randint(40, 80)
+
+        self.time_animation_attack = 0
+        self.max_time_animation_attack = 3
+        self.attack_animation = 0
+
+        self.characteristics = {'hp': 30}
+
+    def update(self):
+        # Поворот к игроку
+        if self.rect.x < player.rect.x:
+            self.side_animation = 1
+        else:
+            self.side_animation = 0
+
+        # Атака
+        if self.attack_wait_tick == self.max_attack_wait_tick:
+            self.attack = True
+            self.attack_wait_tick = 0
+            self.max_attack_wait_tick = random.randint(70, 130)
+
+        # Анимация атаки
+        if self.attack:
+            if self.time_animation_attack == self.max_time_animation_attack:
+                self.time_animation_attack = 0
+                self.attack_animation += 1
+                if self.attack_animation % 8 == 0:
+                    self.attack_animation %= 8
+                    self.attack = False
+
+                    # Создаем стрелу, направленную в цель
+                    arrows.add(Arrow(self.rect.center))
+
+            else:
+                self.time_animation_attack += 1
+
+        # Отображение анимации
+        self.image = self.animations[self.side_animation][self.attack_animation]
+        self.mask = pygame.mask.from_surface(self.animations[self.side_animation][self.attack_animation])
+        
+        if not self.attack:
+            self.attack_wait_tick += 1
+        
+        self.check_damage()
+
+
+class Arrow(Monsters):
+    def __init__(self, start_pos):
+        Monsters.__init__(self)
+        
+        self.image = arrow
+        self.mask = pygame.mask.from_surface(self.image)
+        self.rect = self.image.get_rect()
+        self.rect.center = start_pos
+        self.speed = 1500
+
+        self.characteristics = {'hp': 100000000,
+                                'damage': 5}
+
+        # Вычисляем направление движения
+        self.direction = pygame.math.Vector2(player.rect.center) - pygame.math.Vector2(start_pos)
+        if self.direction.length() > 0:
+            self.direction = self.direction.normalize()
+
+        # Вычисляем угол поворота и поворачиваем
+        angle = math.degrees(math.atan2(-self.direction.y, self.direction.x))
+        self.image = pygame.transform.rotate(self.image, angle)
+
+    def update(self):
+        # Двигаем стрелу
+        self.rect.center += self.direction * self.speed * delta_time
+
+        # Удаляем стрелу, если она вышла за пределы экрана
+        if not (350 <= self.rect.x <= 1500 and
+                    190 <= self.rect.y <= 720):
+            self.kill()
+
+        # Попадание
+        if pygame.sprite.collide_mask(self, player):
+            self.kill()
+            if not pygame.mixer.Channel(sounds['hurt']).get_busy():
+                pygame.mixer.Channel(sounds['hurt']).play(pygame.mixer.Sound(
+                    'data/music_and_sounds/sounds/main_hero_sounds/hurt.mp3'))
+                player.characteristics['all_hp'] -= self.characteristics['damage']
+        
+        screen_game.blit(self.image, (self.rect.x, self.rect.y))
 
 
 def pause():
@@ -1201,6 +1565,7 @@ class weapon_on_ground(pygame.sprite.Sprite):
             self.image = load_image(name + '.png', r'weapon\edged_weapons')
         else:
             self.image = load_image(name + '.png', r'weapon\magic')
+        self.mask = pygame.mask.from_surface(self.image)
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
@@ -1211,28 +1576,26 @@ class weapon_on_ground(pygame.sprite.Sprite):
             OBJECTS[room.this_room[0]] = [self]
 
     def update(self, event):
-        global player_group, player, screen_game
-        if pygame.sprite.spritecollide(self, player_group, False):
+        global player_group, player
+        if pygame.sprite.spritecollide(self, player_group, False, pygame.sprite.collide_mask):
             if event.type == pygame.KEYDOWN:
                 if event.unicode == SETTINGS['interaction']:
                     for i in OBJECTS:
                         for j in OBJECTS[i]:
                             if j == self:
-                                print('del')
                                 OBJECTS[i].remove(j)
                     if self.name in melee_weapons:
                         weapon_on_ground(self.rect.x, self.rect.y, player.melee1['name'], True)
                         player.melee1 = melee_weapons[self.name]
                         interface()
-                        screen_game.blit(load_image(player.melee1['picture'], 'weapon/edged_weapons'), (270, 850))
-                        screen_game.blit(load_image(player.magic1['picture'], 'weapon/magic'), (470, 850))
+                        
                     else:
                         weapon_on_ground(self.rect.x, self.rect.y, player.magic1['name'], False)
                         player.magic1 = magic_weapons[self.name]
                         interface()
-                        screen_game.blit(load_image(player.melee1['picture'], 'weapon/edged_weapons'),
-                                         (270, 850))
-                        screen_game.blit(load_image(player.magic1['picture'], 'weapon/magic'), (470, 850))
+                        
+                    screen_game.blit(load_image(player.melee1['picture'], 'weapon/edged_weapons'),(270, 850))
+                    screen_game.blit(load_image(player.magic1['picture'], 'weapon/magic'), (470, 850))
                     self.kill()
 
 
@@ -1241,6 +1604,7 @@ class Potion(pygame.sprite.Sprite):
         global room, OBJECTS
         super().__init__(items_this_room_group)
         self.image = load_image(f'{potion}.png', r'weapon/potions')
+        self.mask = pygame.mask.from_surface(self.image)
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
@@ -1252,21 +1616,23 @@ class Potion(pygame.sprite.Sprite):
 
     def update(self, event):
         global player_group, player
-        if pygame.sprite.spritecollide(self, player_group, False):
+        if pygame.sprite.spritecollide(self, player_group, False, pygame.sprite.collide_mask):
             if event.type == pygame.KEYDOWN:
                 if event.unicode == SETTINGS['interaction']:
                     for i in OBJECTS:
                         for j in OBJECTS[i]:
                             if j == self:
-                                print('del')
                                 OBJECTS[i].remove(j)
                     if self.potion == 'potion_mana':
-                        player.characteristics['unlocked_mana'] += 25
-                        player.characteristics['mana'] += 25
+                        if player.characteristics['mana'] + 25 <= player.characteristics['unlocked_mana']:
+                            player.characteristics['mana'] += 25
+                        else:
+                            player.characteristics['mana'] = player.characteristics['unlocked_mana']
                     elif self.potion == 'potion_hp':
-                        if player.characteristics['unlocked_hp'] + 1 <= 10:
-                            player.characteristics['unlocked_hp'] += 1
-                            player.characteristics['hp'] += 1
+                        if player.characteristics['hp'] + 2 <= player.characteristics['unlocked_hp']:
+                            player.characteristics['all_hp'] = (player.characteristics['hp'] + 2) * player.characteristics['hp_cell']
+                        else:
+                            player.characteristics['all_hp'] = player.characteristics['unlocked_hp'] * player.characteristics['hp_cell']
                     pygame.mixer.Channel(sounds['diffrent']).play(
                         pygame.mixer.Sound('data/music_and_sounds/sounds/main_hero_sounds/drink.mp3'))
                     self.kill()
@@ -1276,6 +1642,7 @@ class Pricing(pygame.sprite.Sprite):
     def __init__(self, x, y, name, tip, cost):
         super().__init__(items_this_room_group)
         self.image = pygame.Surface((250, 170), pygame.SRCALPHA, 32)
+        self.mask = pygame.mask.from_surface(self.image)
         self.cost = cost
         self.name = name
         self.tip = tip
@@ -1300,14 +1667,13 @@ class Pricing(pygame.sprite.Sprite):
 
     def update(self, event):
         global player_group, player
-        if pygame.sprite.spritecollide(self, player_group, False):
+        if pygame.sprite.spritecollide(self, player_group, False, pygame.sprite.collide_rect):
             if event.type == pygame.KEYDOWN:
                 if event.unicode == SETTINGS['interaction']:
                     if player.characteristics['coins'] >= self.cost:
                         for i in OBJECTS:
                             for j in OBJECTS[i]:
                                 if j == self:
-                                    print('del')
                                     OBJECTS[i].remove(j)
                         if self.tip == 'melee':
                             weapon_on_ground(self.rect.x, self.rect.y + 100, self.name, True)
@@ -1321,16 +1687,16 @@ class Pricing(pygame.sprite.Sprite):
 
 # Типы оружия
 melee_weapons = {
-    'usual_sword': {'name': 'usual_sword', 'damage': 20, 'CANMELEE': 0.1, 'hitbox_type': attack_rect, 'hitboxtime': 0.1,
+    'usual_sword': {'name': 'usual_sword', 'damage': 20, 'CANMELEE': 0.3, 'hitbox_type': attack_rect, 'hitboxtime': 0.1,
                     'picture': 'usual_sword.png', 'sound': 'sword_hit3.mp3', 'cost': 100},
     'usual_hammer': {'name': 'usual_hammer', 'damage': 40, 'CANMELEE': 1, 'hitbox_type': attack_rect, 'hitboxtime': 0.3,
                      'picture': 'usual_hammer.png', 'sound': 'hammer_hit.mp3', 'cost': 200}
 }
 
 magic_weapons = {
-    'usual_fireball': {'name': 'usual_fireball', 'damage': 5, 'CANMELEE': 0.5, 'type': fireball,
+    'usual_fireball': {'name': 'usual_fireball', 'damage': 20, 'CANMELEE': 0.5, 'type': fireball,
                        'mana': 5, 'picture': 'usual_fireball.png', 'sound': 'fireball.mp3', 'cost': 150},
-    'usual_thunderbolt': {'name': 'usual_thunderbolt', 'damage': 15, 'CANMELEE': 0.3, 'type': thunderbolt,
+    'usual_thunderbolt': {'name': 'usual_thunderbolt', 'damage': 40, 'CANMELEE': 1, 'type': thunderbolt,
                           'mana': 10, 'picture': 'usual_thunderbolt.png', 'sound': 'thunderbolt.mp3', 'cost': 250}
 }
 
@@ -1339,7 +1705,12 @@ potions = {
     'potion_mana': {'name': 'potion_mana', 'add': 10, 'max_add': 10, 'cost': 200}
 }
 
-sounds = {}
+
+# Уровень
+level = 10
+# Спрайт игрока
+player = Player()
+player_group = pygame.sprite.Group(player)
 
 
 # Начало программы
@@ -1356,6 +1727,9 @@ def start():
     global arc0, arc1, summoned_flame_images, summoned_skeleton_images
 
     pygame.init()
+    channels = 4
+    pygame.mixer.init(frequency=44100, size=-16, channels=channels, buffer=4096)
+
     # Создание экрана
     width, height = 1920, 1080
     screen_game = pygame.display.set_mode((1920, 1080))
@@ -1363,13 +1737,11 @@ def start():
 
     # Фон и интерфейс
     interface()
+    screen_game.blit(load_image(player.melee1['picture'], 'weapon/edged_weapons'),(270, 850))
+    screen_game.blit(load_image(player.magic1['picture'], 'weapon/magic'), (470, 850))
 
     FPS = 120
     clock = pygame.time.Clock()
-
-    # Музыка
-    pygame.mixer.music.load('data/music_and_sounds/music/game_standart.mp3')
-    pygame.mixer.music.play(-1)
 
     # Текст сверху
     main_text = ''
@@ -1378,9 +1750,18 @@ def start():
     text_size = 0
     text_coords = 0
 
+    # Музыка
+    pygame.mixer.music.load('data/music_and_sounds/music/game_standart.mp3')
+    pygame.mixer.music.play(-1)
+
     # Звуки
+    sounds = {}
     channels = 7
+    pygame.mixer.set_num_channels(8)
     pygame.mixer.init(frequency=44100, size=-16, channels=channels, buffer=4096)
+
+    sounds['hurt'] = 0
+    pygame.mixer.Channel(0)
 
     sounds['steps'] = 1
     pygame.mixer.Channel(1)
@@ -1407,31 +1788,27 @@ def start():
 
     # Начало меню конца
     font = pygame.font.Font(None, 32)
-    text = ['Вы погибли, ваш путь окончен...', 'Количество пройденных этажей: ' + 'text']
+    text = ['Вы погибли, ваш путь окончен...', 'Количество пройденных этажей: ' + str(level - 1)]
     text_coord_ending = 200
 
     button_end_group = pygame.sprite.Group()
     Button('start_new_game.png', 300, 50, 800, 300, button_end_group)
     Button('menu_back.png', 250, 50, 820, 360, button_end_group)
     Button('game_stop.png', 250, 50, 820, 420, button_end_group)
-    # Конец меню конца
 
-    points3 = Button('points3.png', 200, 100, 1670, 20, button_pause)
-    cont = Button('continue.png', 300, 100, 800, 300, pause_group)
-    menu_back = Button('menu_back.png', 300, 100, 800, 500, pause_group)
+    # Конец меню конца
+    Button('continue.png', 300, 100, 800, 300, pause_group)
+    Button('menu_back.png', 300, 100, 800, 500, pause_group)
     pausing = False
     ending = False
 
-    # Арки удара некроманта
-    arc0 = load_image('arc0.png', 'characters/bosses/necromancer')
-    arc1 = load_image('arc1.png', 'characters/bosses/necromancer')
     # Спрайты фантомного скелета
     summoned_skeleton_images = [load_image('skeleton_attack' + str(i) + '.png', 'characters/bosses/necromancer')
                                 for i in range(3)]
     # Спрайты фантомного взрыва
     summoned_flame_images = [load_image('boom' + str(i) + '.png', 'characters/bosses/necromancer') for i in range(4)]
 
-    map_list, room_number = map_generation(level=10, map_size=4)
+    map_list, room_number = map_generation(level=level, map_size=4)
 
     for i in map_list:
         for j in i:
@@ -1439,16 +1816,13 @@ def start():
         print()
     print(room_number)
 
-    # Спрайт игрока и создание переменной комнаты
-    player = Player()
-    player_group = pygame.sprite.Group(player)
-    screen_game.blit(load_image(player.melee1['picture'], 'weapon/edged_weapons'), (270, 850))
-    screen_game.blit(load_image(player.magic1['picture'], 'weapon/magic'), (470, 850))
-
+    # Изменение игрока
     if level > 1:
         player.rect.x = 1425
         player.rect.y = 280
+    player.characteristics['all_hp'] = player.characteristics['hp'] * player.characteristics['hp_cell']
 
+    # Cоздание переменной комнаты
     room = Room(map_list, room_number)
 
     # Курсор
@@ -1462,27 +1836,26 @@ def start():
     Border(300, 200, 300, height - 250)  # вертик
     Border(width - 300, 200, width - 300, height - 250)  # вертик
 
-    usual_skeleton()
-    weapon_on_ground(500, 500, 'usual_hammer', True)
-    weapon_on_ground(1300, 500, 'usual_thunderbolt', False)
-    Potion(1000, 600, 'potion_hp')
-    Potion(1000, 300, 'potion_mana')
-    Pricing(1100, 500, 'usual_sword', 'melee', 500)
-
     # Изменение анимации у интерактивных объектов
-    global chest
+    global chest, warning
+    warning = False
     chest = Object('chest_animation_', 'map/chest', 900, 450, 150, 150, 5)
-
+    
     # Основной цикл
     running = True
     while running:
-        # Выход из программы
+        global delta_time
+        delta_time = clock.tick(FPS) / 1000.0
+
+        # События
         for event in pygame.event.get():
+            # Выход из программы
             if event.type == pygame.QUIT:
                 running = False
                 terminate()
+            # Пауза
             if pausing:
-                if event.type == pygame.KEYDOWN:
+                if event.type == pygame.KEYUP:
                     if event.unicode == SETTINGS['menu']:
                         pausing = False
                 pause_group.update(event)
@@ -1490,19 +1863,19 @@ def start():
             elif ending:
                 button_end_group.update(event)
             else:
-                if event.type == pygame.KEYDOWN:
+                if event.type == pygame.KEYUP:
                     if event.unicode == SETTINGS['melee_weapon']:
                         player.melee_magic = 0
                     if event.unicode == SETTINGS['magic_weapon']:
                         player.melee_magic = 1
                     if event.unicode == SETTINGS['menu']:
                         pause()
+                # Взаимодействие
                 if event.type == pygame.KEYUP:
                     player.action(event)
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     player.attack(event)
 
-                button_pause.update(event)
                 items_this_room_group.update(event)
         # Загрузка настроек, создание комнтаты, обновление персонажа
         if pausing:
@@ -1522,18 +1895,16 @@ def start():
             text_coord_ending = 200
 
         else:
-            if len(enemy_group) == 0:
+            if len(enemy_group) == 0 and len(boss_group) == 0 and not warning:
                 FIGHT = False
+            else:
+                FIGHT = True
 
             if time.process_time() - player.lastfire >= player.magic1['CANMELEE']:
                 CANFIRE = True
             if time.process_time() - player.lastmelee >= player.melee1['CANMELEE']:
                 CANMELEE = True
-            if (time.process_time() - player.lastmana >= 2 and
-                    player.characteristics['mana'] < player.characteristics['unlocked_mana']):
-                player.characteristics['mana'] += 1
-                player.lastmana = time.process_time()
-            for i in enemy_group:
+            for i in boss_group:
                 if time.process_time() - i.lastmelee >= i.attackwait:
                     i.canmelee = True
             for i in attack_group:
@@ -1554,31 +1925,23 @@ def start():
                         i.canflame = True
                 except Exception:
                     pass
+
             load_settings(channels)
-            #        check_cursor(cursor_rect)
+            check_cursor(cursor_rect)
             room.create()
             player.movement()
             player.update()
+            screen_game.blit(text_field, (620, 40))
 
-            screen_game.blit(text_field, (590, 40))
-
-            all_borders.draw(screen_game)
-            button_pause.draw(screen_game)
-
-            magic_group.update()
-            usual_skeletons_group.update()
-            attack_group.update()
             coins_group.update()
-            attack_usual_skeleton_group.update()
             enemy_group.update()
             enemy_attack_group.update()
             boss_group.update()
+            magic_group.update()
 
             magic_group.draw(screen_game)
-            usual_skeletons_group.draw(screen_game)
             attack_group.draw(screen_game)
             coins_group.draw(screen_game)
-            attack_usual_skeleton_group.draw(screen_game)
             boss_group.draw(screen_game)
             enemy_group.draw(screen_game)
             enemy_attack_group.draw(screen_game)
@@ -1592,7 +1955,7 @@ def start():
                                       0] != 'door_start'):
                     show_main_text(text_size)
             screen_game.blit(pygame.font.Font('data/shrifts/main_shrift.ttf', 60).render(
-                                            f'Уровень: {level}', False, (20, 20, 20)), (1340, 880))
+                                            f'Этаж: {level}', False, (20, 20, 20)), (1355, 885))
 
         clock.tick(FPS)
         pygame.display.flip()
