@@ -183,9 +183,3 @@ for image in images:
 # Арки удара некроманта
 arc0 = load_im(['arc0', 100, 50], 'characters/bosses/necromancer')
 arc1 = load_im(['arc1', 100, 50], 'characters/bosses/necromancer')
-# # Спрайты фантомного скелета
-# summoned_skeleton_images = [load_im('skeleton_attack' + str(i), 
-#                             'characters/bosses/necromancer') for i in range(3)]
-# # Спрайты фантомного взрыва
-# summoned_flame_images = [load_im('boom' + str(i), 
-#                          'characters/bosses/necromancer') for i in range(4)]
