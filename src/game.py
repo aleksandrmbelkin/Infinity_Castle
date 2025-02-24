@@ -620,11 +620,11 @@ class Player(pygame.sprite.Sprite):
         self.rect.x = self.x
         self.rect.y = self.y
 
-        self.characteristics = {'coins': 999,
+        self.characteristics = {'coins': 0,
                                 'hp': 4,
                                 'unlocked_hp': 4,
-                                'hp_cell': 300,
-                                'all_hp': 1000,
+                                'hp_cell': 15,
+                                'all_hp': 60,
                                 'mana': 50,
                                 'unlocked_mana': 50,}
 
