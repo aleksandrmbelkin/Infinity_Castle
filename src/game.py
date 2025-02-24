@@ -113,15 +113,15 @@ class Button(pygame.sprite.Sprite):
                 for i in pause_group:
                     i.kill()
                 pygame.quit()
-                os.system('python main.py')
+                os.system('python src/main.py')
                 sys.exit()
             elif self.button_type == 'start_new_game.png':
                 pygame.quit()
-                os.system('python game.py')
+                os.system('python src/game.py')
                 sys.exit()
             elif self.button_type == 'menu_back.png':
                 pygame.quit()
-                os.system('python main.py')
+                os.system('python src/main.py')
                 sys.exit()
             elif self.button_type == 'game_stop.png':
                 terminate()
