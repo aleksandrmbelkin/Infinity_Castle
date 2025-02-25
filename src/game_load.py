@@ -183,3 +183,7 @@ for image in images:
 # Арки удара некроманта
 arc0 = load_im(['arc0', 100, 50], 'characters/bosses/necromancer')
 arc1 = load_im(['arc1', 100, 50], 'characters/bosses/necromancer')
+
+# Магия
+fireball_image = load_im(['fireball', 50, 30], 'weapon/magic')
+mana_image = load_im(['mana_image', 20, 20], 'weapon/magic')
