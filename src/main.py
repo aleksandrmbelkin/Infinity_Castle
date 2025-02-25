@@ -24,15 +24,14 @@ buttons_settings = [('sound1.png', 200, 60, 330), ('musik1.png', 200, 60, 330)]
 button_group = pygame.sprite.Group()
 # Ник зарег. человека
 NICKNAME = ''
-names = ['Вперёд', 'Налево', 'Вниз', 'Направо', 'Холодное оружие', 'Магическое оружие', 'Взаимодействие', 'Меню']
-names_eng = ['forward', 'left', 'down', 'right', 'melee_weapon', 'magic_weapon', 'interaction', 'menu']
+names = ['Вперёд', 'Налево', 'Вниз', 'Направо', 'Взаимодействие', 'Меню']
+names_eng = ['forward', 'left', 'down', 'right', 'interaction', 'menu']
 
 
 def load_settings():
     global SETTINGS
     # загрузка настроек из файла
-    SETTINGS = ['sound 1', 'musik 1', 'forward w', 'left a', 'down s', 'right d', 'melee_weapon q', 'magic_weapon e',
-                'interaction f', 'menu ']
+    SETTINGS = ['sound 1', 'musik 1', 'forward w', 'left a', 'down s', 'right d', 'interaction f', 'menu ']
     try:
         test = open('settings.txt')
     except Exception:
@@ -82,9 +81,7 @@ class Button(pygame.sprite.Sprite):
             if self.button_type == 'game_start.png':
                 if NICKNAME:
                     pygame.quit()
-                    global level
-                    level = 1
-                    start()
+                    start(10)
                 else:
                     account_login()
             elif self.button_type == 'training.png':
@@ -182,14 +179,14 @@ def settings():
         i.kill()
     screen.fill('black')
     Button('back.png', 200, 70, 10, 10, button_group)
-    Button('confirm_settings.png', 200, 70, 330, 800, button_group)
-    Button('settings_reset.png', 200, 70, 600, 800, button_group)
+    Button('confirm_settings.png', 200, 70, 330, 700, button_group)
+    Button('settings_reset.png', 200, 70, 600, 700, button_group)
     for i in range(2):
         Button(buttons_settings[i][0], buttons_settings[i][1], buttons_settings[i][2],
                buttons_settings[i][3], 70 + 70 * i, button_group)
     input_box = []
     font = pygame.font.Font(None, 30)
-    for i in range(8):
+    for i in range(6):
         input_box.append(One_Symbol_InputBox(330, 330 + 50 * i, 100, 40, text=SETTINGS[2 + i][1]))
     running = True
     while running:
@@ -203,7 +200,7 @@ def settings():
         for i in input_box:
             i.update()
         screen.fill('black')
-        for i in range(8):
+        for i in range(6):
             string_rendered = font.render(f'{names[i]}', 1, pygame.Color('white'))
             rect_size = pygame.rect.Rect(130, 335 + 50 * i, 70, 40)
             screen.blit(string_rendered, rect_size)
