@@ -55,7 +55,7 @@ def load_settings(channels):
 
 # Создание и выведение на экран интерфейса
 def interface():
-    global interface_images, fon
+    global interface_images
     screen_game.blit(fon, (0, 0))
 
     pygame.draw.rect(screen_game, pygame.Color('black'), (275, 185, 1365, 670))
@@ -320,7 +320,7 @@ class Arc(pygame.sprite.Sprite):
     def __init__(self, x):
         super().__init__(enemy_attack_group)
         self.image = arc0
-        self.rect = pygame.Rect(x, 770, 50, 50)
+        self.rect = pygame.Rect(x, 700, 50, 50)
         self.damage = 1
         self.mask = pygame.mask.from_surface(self.image)
 
@@ -473,6 +473,7 @@ class Necromancer_boss_second(pygame.sprite.Sprite):
             if time.process_time() - self.timer >= 1.1:
                 self.kill()
                 pygame.mixer.music.stop()
+                enemy_group.empty()
                 global map_list
                 map_list[room.room_number[0]][room.room_number[1]][0] = 'end'
 
@@ -1161,6 +1162,7 @@ class Room:
             global all_objects, map_list
             all_objects = pygame.sprite.Group()
             items_this_room_group.empty()
+            mana_particle_group.empty()
 
             if not pygame.mixer.Channel(sounds['door_open']).get_busy():
                 pygame.mixer.Channel(sounds['door_open']).play(pygame.mixer.Sound(
@@ -1233,6 +1235,10 @@ class Monsters(pygame.sprite.Sprite):
             self.kill()
             global kill_someone
             kill_someone = True
+        
+        if not (340 + self.speed * delta_time <= self.rect.x <= 1470 - self.speed * delta_time and
+                    170 + self.speed * delta_time <= self.rect.y <= 665 - self.speed * delta_time):
+            self.kill()
     
 
 class Skeleton(Monsters):
@@ -1475,6 +1481,7 @@ class Archer(Monsters):
 
         self.rect.x = self.x
         self.rect.y = self.y
+        self.speed = 0
 
         self.attack = False
         self.max_attack_wait_tick = random.randint(40, 80)
@@ -2003,6 +2010,7 @@ def start(my_level):
 
             load_settings(channels)
             check_cursor(cursor_rect)
+            interface()
             room.create()
             player.movement()
             player.update()
