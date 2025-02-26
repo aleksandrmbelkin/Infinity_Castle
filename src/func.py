@@ -5,6 +5,9 @@ import random
 
 
 def terminate():
+    with open('account_info.txt', 'w') as f:
+        pass
+
     pygame.quit()
     sys.exit()
 
