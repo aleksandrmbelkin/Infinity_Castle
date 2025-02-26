@@ -6,6 +6,8 @@ import math
 import random
 from func import map_generation
 from game_load import *
+import sqlite3
+
 
 # Группы спрайтов
 all_borders = pygame.sprite.Group()
@@ -29,6 +31,15 @@ CANMELEE = True
 DIFFICULTY_MULTY = 1.0
 PRICING_MULTY = 0.9
 OBJECTS = {}
+
+# Проверка файла с информацией
+last_change_file_time = os.stat('account_info.txt').st_mtime
+if last_change_file_time != os.stat('account_info.txt').st_mtime:
+    print(os.stat('account_info.txt').st_mtime)
+    print('Вторжение в файлы игры')
+    terminate()
+else:
+    nickname = str(open('account_info.txt').readline()).strip()
 
 
 # Загрузка данных из настроек
@@ -101,7 +112,7 @@ class Button(pygame.sprite.Sprite):
         self.rect.y = y
 
     def update(self, *args):
-        global running, pausing, pause_group
+        global running, pausing, pause_group, last_change_file_time, level, nickname
         if args and args[0].type == pygame.MOUSEBUTTONDOWN and self.rect.collidepoint(args[0].pos):
             if self.button_type == 'continue.png':
                 pausing = False
@@ -109,15 +120,27 @@ class Button(pygame.sprite.Sprite):
                 for i in pause_group:
                     i.kill()
                 pygame.quit()
-                os.system('python src/main.py')
+
+                db = sqlite3.connect("data\\InfinityCastle_db")
+                cur = db.cursor()
+                characteristics = player.characteristics
+                print(characteristics)
+                cur.execute(f'UPDATE savings SET level = {level}, coins = {characteristics["coins"]}, '
+                            f'hp = {characteristics["hp"]}, unlocked_hp = {characteristics["unlocked_hp"]}, '
+                            f'hp_cell = {characteristics["hp_cell"]}, all_hp = {characteristics["all_hp"]}, '
+                            f'mana = {characteristics["mana"]}, unlocked_mana = {characteristics["unlocked_mana"]}, '
+                            f'melee_power = {characteristics["meele_power"]}, magic_power = {characteristics["magic_power"]}, '
+                            f'protection = {characteristics["protection"]}, critical_damage = {characteristics["critical_damage"]}, '
+                            f'melee_weapon = "{player.melee1["name"]}", magic_weapon = "{player.magic1["name"]}" '
+                            f'WHERE Id = (SELECT Id FROM accounts WHERE nickname="{nickname}")')
+                db.commit()
+                db.close()
+
+                os.system('python main.py')
                 sys.exit()
             elif self.button_type == 'start_new_game.png':
                 pygame.quit()
-                os.system('python src/game.py')
-                sys.exit()
-            elif self.button_type == 'menu_back.png':
-                pygame.quit()
-                os.system('python src/main.py')
+                os.system('python game.py')
                 sys.exit()
             elif self.button_type == 'game_stop.png':
                 terminate()
@@ -602,6 +625,8 @@ def show_main_text(size):
 class Player(pygame.sprite.Sprite):
     # Инициализация начальных характеристик персонажа
     def __init__(self):
+        global level, nickname
+
         pygame.sprite.Sprite.__init__(self)
         self.x = 900
         self.y = 250
@@ -640,6 +665,13 @@ class Player(pygame.sprite.Sprite):
         self.rect.x = self.x
         self.rect.y = self.y
 
+        db = sqlite3.connect("data\\InfinityCastle_db")
+        cur = db.cursor()
+        info = cur.execute(f'SELECT level, coins, hp, unlocked_hp, hp_cell, all_hp, '
+                           f'mana, unlocked_mana, melee_power, magic_power, '
+                           f'protection, critical_damage, melee_weapon, magic_weapon '
+                           f'FROM savings WHERE Id = '
+                           f'(SELECT Id FROM accounts WHERE nickname="{nickname}")').fetchone()
         self.characteristics = {'coins': 0,
                                 'hp': 4,
                                 'unlocked_hp': 4,
@@ -651,6 +683,11 @@ class Player(pygame.sprite.Sprite):
                                 'magic_power': 0,
                                 'protection': 0,
                                 'critical_damage': 0}
+        for i in range(len(list(self.characteristics.keys()))):
+            self.characteristics[list(self.characteristics.keys())[i]] = info[i + 1]
+        level = info[0]
+        self.melee1 = melee_weapons[info[-2]]
+        self.magic1 = magic_weapons[info[-1]]
 
     def movement(self):
         # Перемещение
@@ -1133,7 +1170,6 @@ class Room:
                     all_monsters.append((Archer()))
                     arrows = pygame.sprite.Group()
 
-
         # Комната с боссом
         elif self.this_room[0] == 'boss':
             if self.this_room[1] != 'used':
@@ -1226,7 +1262,7 @@ class Monsters(pygame.sprite.Sprite):
                 self.attacked = True
                 if random.random() <= player.characteristics['critical_damage']:
                     chance_crit = 2
-                self.characteristics['hp'] -= player.melee1['damage'] + player.characteristics['melle_power'] * chance_crit
+                self.characteristics['hp'] -= player.melee1['damage'] + player.characteristics['meele_power'] * chance_crit
             else:
                 if self.attacked_time == self.max_attacked_time:
                     self.attacked_time = -1
@@ -1639,8 +1675,21 @@ def pause():
 
 
 def end():
-    global ending
-    pygame.mixer.Channel(sounds['steps']).stop()
+    global ending, nickname
+
+    db = sqlite3.connect("data\\InfinityCastle_db")
+    cur = db.cursor()
+    cur.execute(f'UPDATE savings SET level = 0, coins = 0, '
+                f'hp = 4, unlocked_hp = 4, '
+                f'hp_cell = 15, all_hp = 60, '
+                f'mana = 50, unlocked_mana = 50, '
+                f'melee_power = 0, magic_power = 0, '
+                f'protection = 0, critical_damage, = 0 '
+                f'melee_weapon = "usual_sword", magic_weapon = "usual_fireball" '
+                f'WHERE Id = (SELECT Id FROM accounts WHERE nickname="{nickname}")')
+    db.commit()
+    db.close()
+
     ending = True
 
 
@@ -1826,6 +1875,7 @@ class Upgrades(pygame.sprite.Sprite):
                         pygame.mixer.Sound('data/music_and_sounds/sounds/main_hero_sounds/drink.mp3'))
                     self.kill()
 
+
 # Типы оружия
 melee_weapons = {
     'usual_sword': {'name': 'usual_sword', 'damage': 20, 'CANMELEE': 0.3, 'hitbox_type': attack_rect, 'hitboxtime': 0.1,
@@ -1873,7 +1923,7 @@ def start(my_level):
     global main_text, text_size
     global text_tick, max_text_tick
     global text_coords, player, enemy_group
-    global arc0, arc1, summoned_flame_images, summoned_skeleton_images
+    global arc0, arc1, summoned_flame_images, summoned_skeleton_images, last_change_file_time, nickname
 
     level = my_level
     pygame.init()
@@ -2042,6 +2092,17 @@ def start(my_level):
         elif ending:
             pygame.draw.rect(screen_game, 'Black', (600, 200, 700, 500), 0)
             button_end_group.draw(screen_game)
+
+            db = sqlite3.connect("data\\InfinityCastle_db")
+            cur = db.cursor()
+            id = int(list(cur.execute(f'SELECT Id FROM accounts WHERE nickname = "{nickname}"').fetchall())[0][0])
+            last_max = int(cur.execute(f'SELECT level FROM leaderboard_level WHERE Id = {id}').fetchall()[0][0])
+
+            if level - 1 > last_max:
+                cur.execute(f'UPDATE leaderboard_level SET level = {level - 1} WHERE Id = {id}')
+                db.commit()
+            db.close()
+
             for line in text:
                 string_rendered = font.render(line, 1, pygame.Color('white'))
                 intro_rect = string_rendered.get_rect()
@@ -2113,7 +2174,7 @@ def start(my_level):
             # Обновление экрана сверху
             if main_text != '':
                 if not (main_text == 'Пути назад уже нет' and map_list[room.room_number[0]][room.room_number[1]][
-                    0] != 'door_start'):
+                                      0] != 'door_start'):
                     show_main_text(text_size)
             screen_game.blit(pygame.font.Font('data/shrifts/main_shrift.ttf', 60).render(
                 f'Этаж: {level}', False, (20, 20, 20)), (1355, 885))
