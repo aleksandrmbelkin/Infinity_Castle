@@ -2,7 +2,6 @@ import pygame
 import os
 import sys
 from func import load_image, terminate
-from game import *
 import sqlite3
 from InputBox import InputBox, One_Symbol_InputBox
 
@@ -16,7 +15,7 @@ clock = pygame.time.Clock()
 clock.tick(FPS)
 # Список с кнопками меню (картинка; ширина, высота, координата левого верхнего угла по x)
 buttons_menu = [('infinity.png', 200, 75, 330), ('castle.png', 200, 65, 330), ('game_start.png', 300, 60, 280),
-                ('training.png', 210, 60, 330), ('settings.png', 250, 60, 300), ('leader_board.png', 300, 60, 280),
+                ('achievenments.png', 250, 60, 300), ('settings.png', 250, 60, 300), ('leader_board.png', 300, 60, 280),
                 ('game_stop.png', 300, 60, 280)]
 # Список с кнопками, но уже для настроек
 buttons_settings = [('sound1.png', 200, 60, 330), ('musik1.png', 200, 60, 330)]
@@ -81,11 +80,12 @@ class Button(pygame.sprite.Sprite):
             if self.button_type == 'game_start.png':
                 if NICKNAME:
                     pygame.quit()
-                    start(10)
+                    os.system('python game.py')
+                    sys.exit()
                 else:
                     account_login()
-            elif self.button_type == 'training.png':
-                pass
+            elif self.button_type == 'achievenments.png':
+                achievenments()
             elif self.button_type == 'settings.png':
                 settings()
             elif self.button_type == 'leader_board.png':
@@ -213,6 +213,38 @@ def settings():
     pygame.quit()
 
 
+def achievenments():
+    global NICKNAME
+    for i in button_group:
+        i.kill()
+    screen.fill('black')
+    Button('back.png', 200, 70, 10, 10, button_group)
+    running = True
+
+    font = pygame.font.Font(None, 32)
+    text = ['Ваши достижения:']
+    text_coord_ending = 200
+
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+                terminate()
+            button_group.update(event)
+        screen.fill('black')
+        button_group.draw(screen)
+        for line in text:
+            string_rendered = font.render(line, 1, pygame.Color('white'))
+            intro_rect = string_rendered.get_rect()
+            text_coord_ending += 10
+            intro_rect.top = text_coord_ending
+            intro_rect.x = 400
+            text_coord_ending += intro_rect.height
+            screen.blit(string_rendered, intro_rect)
+        text_coord_ending = 200
+        pygame.display.flip()
+
+
 def account_login():
     # Отображение окна с входом в аккаунт
     global NICKNAME
@@ -222,6 +254,7 @@ def account_login():
         i.kill()
     screen.fill('black')
     # Если пользователь уже зарег., то этого окна не будет
+
     if not NICKNAME:
         input_box1 = InputBox(350, 300, 140, 32)
         input_box2 = InputBox(350, 400, 140, 32)
@@ -373,6 +406,8 @@ def account_check(a, b, tip):
         if status:
             NICKNAME = a
             START = True
+            with open('account_info.txt', 'w+') as f:
+                f.write(a)
             menu()
         else:
             Button('wrong_name_password.png', 410, 60, 250, 750, button_group)
@@ -383,10 +418,19 @@ def account_check(a, b, tip):
             db = sqlite3.connect('data\\InfinityCastle_db')
             cur = db.cursor()
             cur.execute(f'INSERT INTO accounts(nickname, password) VALUES("{a}", "{b}")')
+            cur.execute(f'INSERT INTO leaderboard_level(Id, level) '
+                        f'VALUES((SELECT Id FROM accounts WHERE nickname="{a}"), 0)')
+            cur.execute(f'INSERT INTO savings(Id, level, coins, hp, unlocked_hp, hp_cell, all_hp, '
+                        f'mana, unlocked_mana, melee_power, magic_power, '
+                        f'protection, critical_damage, melee_weapon, magic_weapon) '
+                        f'VALUES((SELECT Id FROM accounts WHERE nickname="{a}"), '
+                        f'0, 0, 4, 4, 15, 60, 50, 50, 0, 0, 0, 0, "usual_sword", "usual_fireball")')
             db.commit()
             db.close()
             NICKNAME = a
             START = False
+            with open('account_info.txt', 'w+') as f:
+                f.write(a)
             menu()
 
 
@@ -397,4 +441,10 @@ if __name__ == '__main__':
     pygame.mixer.music.play(-1)
     # Активация приложения
     load_settings()
+
+    with open('account_info.txt') as f:
+        f = str(f.readline()).strip()
+        if f != '':
+            NICKNAME = f
+
     account_login()
