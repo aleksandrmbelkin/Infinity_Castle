@@ -33,13 +33,13 @@ PRICING_MULTY = 0.9
 OBJECTS = {}
 
 # Проверка файла с информацией
-last_change_file_time = os.stat('account_info.txt').st_mtime
-if last_change_file_time != os.stat('account_info.txt').st_mtime:
-    print(os.stat('account_info.txt').st_mtime)
+last_change_file_time = os.stat('src/account_info.txt').st_mtime
+if last_change_file_time != os.stat('src/account_info.txt').st_mtime:
+    print(os.stat('src/account_info.txt').st_mtime)
     print('Вторжение в файлы игры')
     terminate()
 else:
-    nickname = str(open('account_info.txt').readline()).strip()
+    nickname = str(open('src/account_info.txt').readline()).strip()
 
 
 # Загрузка данных из настроек
@@ -136,11 +136,11 @@ class Button(pygame.sprite.Sprite):
                 db.commit()
                 db.close()
 
-                os.system('python main.py')
+                os.system('python src/main.py')
                 sys.exit()
             elif self.button_type == 'start_new_game.png':
                 pygame.quit()
-                os.system('python game.py')
+                os.system('python src/game.py')
                 sys.exit()
             elif self.button_type == 'game_stop.png':
                 terminate()
@@ -686,6 +686,8 @@ class Player(pygame.sprite.Sprite):
         for i in range(len(list(self.characteristics.keys()))):
             self.characteristics[list(self.characteristics.keys())[i]] = info[i + 1]
         level = info[0]
+        if level == 0:
+            level += 1
         self.melee1 = melee_weapons[info[-2]]
         self.magic1 = magic_weapons[info[-1]]
 
@@ -793,10 +795,10 @@ class Player(pygame.sprite.Sprite):
                                 Coin(random.randint(self.rect.x - 20, self.rect.x + 20),
                                      random.randint(self.rect.y + 20, self.rect.y + 20))
                         if 0.7 <= chance < 0.75:
-                            weapon_on_ground(self.rect.x, self.rect.y + 20,
+                            Weapon_on_ground(self.rect.x, self.rect.y + 20,
                                              melee_weapons[random.choice(list(melee_weapons.keys()))]['name'], True)
                         if 0.75 <= chance < 0.8:
-                            weapon_on_ground(self.rect.x, self.rect.y + 20,
+                            Weapon_on_ground(self.rect.x, self.rect.y + 20,
                                              magic_weapons[random.choice(list(magic_weapons.keys()))]['name'], False)
                         if 0.8 <= chance < 1:
                             Potion(self.rect.x, self.rect.y + 20, potions[random.choice(list(potions.keys()))]['name'])
@@ -851,7 +853,7 @@ class Player(pygame.sprite.Sprite):
                         boss_group.empty()
                         enemy_attack_group.empty()
 
-                        start(level)
+                        start()
                     else:
                         main_text = 'Нужно проверить все комнаты'
                         text_tick = 0
@@ -897,11 +899,11 @@ class Player(pygame.sprite.Sprite):
                                         Coin(random.randint(self.rect.x - 20, self.rect.x + 20),
                                              random.randint(self.rect.y + 20, self.rect.y + 20))
                                 if 0.7 <= chance < 0.8:
-                                    weapon_on_ground(self.rect.x, self.rect.y + 20,
+                                    Weapon_on_ground(self.rect.x, self.rect.y + 20,
                                                      melee_weapons[random.choice(list(melee_weapons.keys()))]['name'],
                                                      True)
                                 if 0.8 <= chance < 0.9:
-                                    weapon_on_ground(self.rect.x, self.rect.y + 20,
+                                    Weapon_on_ground(self.rect.x, self.rect.y + 20,
                                                      magic_weapons[random.choice(list(magic_weapons.keys()))]['name'],
                                                      False)
                                 if 0.9 <= chance < 1:
@@ -1046,6 +1048,8 @@ class Room:
         self.random_weapon = random.choice(list(melee_weapons.keys()))
         self.random_magic = random.choice(list(magic_weapons.keys()))
         self.random_potion = random.choice(list(potions.keys()))
+        self.random_upgrade1 = random.choice(list(upgrades.keys()))
+        self.random_upgrade2 = random.choice(list(upgrades.keys()))
         self.flag = False
 
         self.em_room = ['empty_room', 280, 190, 1355, 660]
@@ -1134,19 +1138,27 @@ class Room:
         # Магазины
         elif room.this_room[0] == 'shop' or room.this_room[0] == 'upgrade_shop':
             if room.this_room[0] == 'shop':
+                if not self.flag:
+                    Pricing(table_1.rect.x, table_1.rect.y, self.random_weapon, 'melee',
+                            melee_weapons[self.random_weapon]['cost'])
+                    Pricing(table_2.rect.x, table_2.rect.y, self.random_magic, 'magic',
+                            magic_weapons[self.random_magic]['cost'])
+                    Pricing(table_3.rect.x, table_3.rect.y, self.random_potion, 'potions',
+                            potions[self.random_potion]['cost'])
+                    self.flag = True
                 screen_game.blit(trader_shop.image_fin, (trader_shop.rect.x, trader_shop.rect.y))
             else:
+                if not self.flag:
+                    Pricing(table_1.rect.x, table_1.rect.y, self.random_upgrade1, 'upgrades',
+                            upgrades[self.random_weapon]['cost'])
+                    Pricing(table_2.rect.x, table_2.rect.y, self.random_upgrade2, 'upgrades',
+                            upgrades[self.random_magic]['cost'])
+                    Pricing(table_3.rect.x, table_3.rect.y, self.random_potion, 'potions',
+                            potions[self.random_potion]['cost'])
+                    self.flag = True
                 screen_game.blit(trader_upgrade.image_fin, (trader_upgrade.rect.x, trader_upgrade.rect.y))
 
             all_objects.add(table_1, table_2, table_3)
-            if not self.flag:
-                Pricing(table_1.rect.x, table_1.rect.y, self.random_weapon, 'melee',
-                        melee_weapons[self.random_weapon]['cost'])
-                Pricing(table_2.rect.x, table_2.rect.y, self.random_magic, 'magic',
-                        magic_weapons[self.random_magic]['cost'])
-                Pricing(table_3.rect.x, table_3.rect.y, self.random_potion, 'potions',
-                        potions[self.random_potion]['cost'])
-                self.flag = True
             screen_game.blit(table_1.image_fin, (table_1.rect.x, table_1.rect.y))
             screen_game.blit(table_2.image_fin, (table_2.rect.x, table_2.rect.y))
             screen_game.blit(table_3.image_fin, (table_3.rect.x, table_3.rect.y))
@@ -1288,8 +1300,8 @@ class Monsters(pygame.sprite.Sprite):
             global kill_someone
             kill_someone = True
 
-        if not (340 + self.speed * delta_time <= self.rect.x <= 1470 - self.speed * delta_time and
-                170 + self.speed * delta_time <= self.rect.y <= 665 - self.speed * delta_time):
+        if (not (340 <= self.rect.x <= 1470) or
+                not (170 <= self.rect.y <= 665)):
             self.kill()
 
 
@@ -1324,8 +1336,8 @@ class Skeleton(Monsters):
         self.max_time_animation_attack = 3
         self.attack_animation = 0
 
-        self.characteristics = {'hp': 40,
-                                'damage': 5}
+        self.characteristics = {'hp': 40 * DIFFICULTY_MULTY,
+                                'damage': 5 * DIFFICULTY_MULTY}
 
     def update(self):
         self.player_x = player.rect.x
@@ -1431,8 +1443,8 @@ class Enemy_Knight(Monsters):
         self.speed = 1300
         self.max_attack_wait_tick = random.randint(20, 60)
 
-        self.characteristics = {'hp': 20,
-                                'damage': 5}
+        self.characteristics = {'hp': 30 * DIFFICULTY_MULTY,
+                                'damage': 5 * DIFFICULTY_MULTY}
 
     def update(self):
         # Окончание ожидания
@@ -1541,7 +1553,7 @@ class Archer(Monsters):
         self.max_time_animation_attack = 3
         self.attack_animation = 0
 
-        self.characteristics = {'hp': 30}
+        self.characteristics = {'hp': 30 * DIFFICULTY_MULTY}
 
     def update(self):
         # Поворот к игроку
@@ -1589,10 +1601,10 @@ class Arrow(Monsters):
         self.mask = pygame.mask.from_surface(self.image)
         self.rect = self.image.get_rect()
         self.rect.center = start_pos
-        self.speed = 1600
+        self.speed = 1800
 
         self.characteristics = {'hp': 100000000,
-                                'damage': 5}
+                                'damage': 5 * DIFFICULTY_MULTY}
 
         # Вычисляем направление движения
         self.direction = pygame.math.Vector2(player.rect.center) - pygame.math.Vector2(start_pos)
@@ -1679,7 +1691,7 @@ def end():
 
     db = sqlite3.connect("data\\InfinityCastle_db")
     cur = db.cursor()
-    cur.execute(f'UPDATE savings SET level = 0, coins = 0, '
+    cur.execute(f'UPDATE savings SET level = 1, coins = 0, '
                 f'hp = 4, unlocked_hp = 4, '
                 f'hp_cell = 15, all_hp = 60, '
                 f'mana = 50, unlocked_mana = 50, '
@@ -1693,7 +1705,7 @@ def end():
     ending = True
 
 
-class weapon_on_ground(pygame.sprite.Sprite):
+class Weapon_on_ground(pygame.sprite.Sprite):
     def __init__(self, x, y, name, melee_or_not):
         global room, OBJECTS
         super().__init__(items_this_room_group)
@@ -1721,12 +1733,12 @@ class weapon_on_ground(pygame.sprite.Sprite):
                             if j == self:
                                 OBJECTS[i].remove(j)
                     if self.name in melee_weapons:
-                        weapon_on_ground(self.rect.x, self.rect.y, player.melee1['name'], True)
+                        Weapon_on_ground(self.rect.x, self.rect.y, player.melee1['name'], True)
                         player.melee1 = melee_weapons[self.name]
                         interface()
 
                     else:
-                        weapon_on_ground(self.rect.x, self.rect.y, player.magic1['name'], False)
+                        Weapon_on_ground(self.rect.x, self.rect.y, player.magic1['name'], False)
                         player.magic1 = magic_weapons[self.name]
                         interface()
 
@@ -1740,6 +1752,7 @@ class Potion(pygame.sprite.Sprite):
         global room, OBJECTS
         super().__init__(items_this_room_group)
         self.image = load_image(f'{potion}.png', r'weapon/potions')
+        pygame.transform.scale(self.image, (20, 20))
         self.mask = pygame.mask.from_surface(self.image)
         self.rect = self.image.get_rect()
         self.rect.x = x
@@ -1801,6 +1814,8 @@ class Pricing(pygame.sprite.Sprite):
             self.image_name = load_im([name, 100, 100], r'weapon\magic')
         elif tip == 'potions':
             self.image_name = load_im([name, 100, 100], r'weapon\potions')
+        elif tip == 'upgrades':
+            self.image_name = load_im([name, 70, 70], r'weapon\upgrades')
         self.font = pygame.font.Font(None, 29)
         self.surface1 = self.font.render(f'{name}', True, pygame.Color('White'))
         self.surface2 = self.font.render(f'стоимость: {int(cost * PRICING_MULTY)} монет(ы)', True,
@@ -1826,25 +1841,28 @@ class Pricing(pygame.sprite.Sprite):
                                 if j == self:
                                     OBJECTS[i].remove(j)
                         if self.tip == 'melee':
-                            weapon_on_ground(self.rect.x, self.rect.y + 100, self.name, True)
+                            Weapon_on_ground(self.rect.x, self.rect.y + 100, self.name, True)
                         elif self.tip == 'magic':
-                            weapon_on_ground(self.rect.x, self.rect.y + 100, self.name, False)
+                            Weapon_on_ground(self.rect.x, self.rect.y + 100, self.name, False)
                         elif self.tip == 'potions':
                             Potion(self.rect.x, self.rect.y + 100, self.name)
+                        elif self.tip == 'upgrades':
+                            Upgrades(self.rect.x, self.rect.y + 100, self.name)
                         player.characteristics['coins'] -= self.cost
                         self.kill()
 
 
 class Upgrades(pygame.sprite.Sprite):
-    def __init__(self, x, y, potion):
+    def __init__(self, x, y, upgrade):
         global room, OBJECTS
         super().__init__(items_this_room_group)
-        self.image = load_image(f'{potion}.png', r'weapon/potions')
+        self.image = load_image(f'{upgrade}.png', r'weapon/upgrades')
+        pygame.transform.scale(self.image, (20, 20))
         self.mask = pygame.mask.from_surface(self.image)
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
-        self.potion = potion
+        self.upgrade = upgrade
         if room.this_room[0] in OBJECTS:
             OBJECTS[room.this_room[0]].append(self)
         else:
@@ -1859,20 +1877,17 @@ class Upgrades(pygame.sprite.Sprite):
                         for j in OBJECTS[i]:
                             if j == self:
                                 OBJECTS[i].remove(j)
-                    if self.potion == 'potion_mana':
-                        if player.characteristics['mana'] + 25 <= player.characteristics['unlocked_mana']:
-                            player.characteristics['mana'] += 25
-                        else:
-                            player.characteristics['mana'] = player.characteristics['unlocked_mana']
-                    elif self.potion == 'potion_hp':
-                        if player.characteristics['hp'] + 2 <= player.characteristics['unlocked_hp']:
-                            player.characteristics['all_hp'] = (player.characteristics['hp'] + 2) * \
-                                                               player.characteristics['hp_cell']
-                        else:
-                            player.characteristics['all_hp'] = player.characteristics['unlocked_hp'] * \
-                                                               player.characteristics['hp_cell']
+                    if self.upgrade == 'add_hp_unlocked':
+                        player.characteristics['unlocked_hp'] += 1
+                        player.characteristics['all_hp'] += player.characteristics['hp_cell']
+                    elif self.upgrade == 'add_hp_cell':
+                        player.characteristics['hp_cell'] += 5
+                    elif self.upgrade == 'add_mana':
+                        player.characteristics['mana'] += 25
+                    elif self.upgrade == 'add_critical_damage':
+                        player.characteristics['critical_damage'] += 0.05
                     pygame.mixer.Channel(sounds['diffrent']).play(
-                        pygame.mixer.Sound('data/music_and_sounds/sounds/main_hero_sounds/drink.mp3'))
+                        pygame.mixer.Sound('data/music_and_sounds/sounds/main_hero_sounds/upgrade.mp3'))
                     self.kill()
 
 
@@ -1900,10 +1915,10 @@ potions = {
 }
 
 upgrades = {
-    'add_hp_unlocked': {'name': 'add_hp_unlocked', 'cost': 60},
-    'add_hp_cell': {'name': 'add_hp_cell', 'cost': 60},
-    'add_mana': {'name': 'add_mana', 'cost': 60},
-    'add_critical_damage': {'name': 'add_critical_damage', 'cost': 60}
+    'add_hp_unlocked': {'name': 'add_hp_unlocked', 'cost': 40},
+    'add_hp_cell': {'name': 'add_hp_cell', 'cost': 40},
+    'add_mana': {'name': 'add_mana', 'cost': 40},
+    'add_critical_damage': {'name': 'add_critical_damage', 'cost': 40}
 }
 
 level = 1
@@ -1913,7 +1928,7 @@ player_group = pygame.sprite.Group(player)
 
 
 # Начало программы
-def start(my_level):
+def start():
     global screen_game, room, sounds
     global all_borders, all_objects
     global sounds, map_list, kill_someone
@@ -1925,7 +1940,6 @@ def start(my_level):
     global text_coords, player, enemy_group
     global arc0, arc1, summoned_flame_images, summoned_skeleton_images, last_change_file_time, nickname
 
-    level = my_level
     pygame.init()
     channels = 4
     pygame.mixer.init(frequency=44100, size=-16, channels=channels, buffer=4096)
@@ -1992,6 +2006,7 @@ def start(my_level):
     pygame.mixer.Channel(9)
 
     PRICING_MULTY += level * 0.1
+    DIFFICULTY_MULTY = level * 0.1
 
     # Начало меню конца
     font = pygame.font.Font(None, 32)
@@ -2151,7 +2166,6 @@ def start(my_level):
             room.create()
             player.movement()
             player.update()
-            screen_game.blit(text_field, (620, 40))
 
             coins_group.update()
             enemy_group.update()
@@ -2187,4 +2201,4 @@ def start(my_level):
 
 # Активация в тестах
 if __name__ == '__main__':
-    start(10)
+    start()
