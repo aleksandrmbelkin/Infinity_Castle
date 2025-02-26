@@ -80,7 +80,7 @@ class Button(pygame.sprite.Sprite):
             if self.button_type == 'game_start.png':
                 if NICKNAME:
                     pygame.quit()
-                    os.system('python game.py')
+                    os.system('python src/game.py')
                     sys.exit()
                 else:
                     account_login()
@@ -406,7 +406,7 @@ def account_check(a, b, tip):
         if status:
             NICKNAME = a
             START = True
-            with open('account_info.txt', 'w+') as f:
+            with open('src/account_info.txt', 'w+') as f:
                 f.write(a)
             menu()
         else:
@@ -429,7 +429,7 @@ def account_check(a, b, tip):
             db.close()
             NICKNAME = a
             START = False
-            with open('account_info.txt', 'w+') as f:
+            with open('src/account_info.txt', 'w+') as f:
                 f.write(a)
             menu()
 
@@ -442,7 +442,7 @@ if __name__ == '__main__':
     # Активация приложения
     load_settings()
 
-    with open('account_info.txt') as f:
+    with open('src/account_info.txt') as f:
         f = str(f.readline()).strip()
         if f != '':
             NICKNAME = f
