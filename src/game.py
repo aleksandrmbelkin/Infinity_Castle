@@ -30,6 +30,7 @@ DIFFICULTY_MULTY = 1.0
 PRICING_MULTY = 0.9
 OBJECTS = {}
 
+
 # Загрузка данных из настроек
 def load_settings(channels):
     global SETTINGS
@@ -64,6 +65,7 @@ def interface():
     for image in interface_images:
         screen_game.blit(image[0], (image[1], image[2]))
 
+
 def check_cursor(cursor_rect):
     cursor_x, cursor_y = pygame.mouse.get_pos()
     if not cursor_rect.collidepoint(cursor_x, cursor_y):
@@ -71,6 +73,7 @@ def check_cursor(cursor_rect):
         cursor_x = max(cursor_rect.left, min(cursor_x, cursor_rect.right))
         cursor_y = max(cursor_rect.top, min(cursor_y, cursor_rect.bottom))
         pygame.mouse.set_pos(cursor_x, cursor_y)
+
 
 def show_main_text(size):
     global text_tick, main_text, text_coords
@@ -161,12 +164,12 @@ class fireball(pygame.sprite.Sprite):
     def update(self, *args, **kwargs):
         global kill_someone
         self.rect.center += self.direction * self.speed * delta_time
-        if (pygame.sprite.spritecollideany(self, all_borders) or 
-            pygame.sprite.spritecollideany(self, all_objects) or 
-            pygame.sprite.spritecollide(self, enemy_group, False, pygame.sprite.collide_mask) or 
-            kill_someone):
-                self.kill()
-                kill_someone = False
+        if (pygame.sprite.spritecollideany(self, all_borders) or
+                pygame.sprite.spritecollideany(self, all_objects) or
+                pygame.sprite.spritecollide(self, enemy_group, False, pygame.sprite.collide_mask) or
+                kill_someone):
+            self.kill()
+            kill_someone = False
 
 
 class thunderbolt(pygame.sprite.Sprite):
@@ -182,11 +185,12 @@ class thunderbolt(pygame.sprite.Sprite):
         self.speed = 700
 
     def update(self, *args, **kwargs):
-        self.rect = self.rect.move(round(self.speed * math.cos(self.angle) * delta_time), round(self.speed * math.sin(self.angle) * delta_time))
-        if (pygame.sprite.spritecollideany(self, all_borders) or 
-            pygame.sprite.spritecollideany(self, all_objects) or 
-            pygame.sprite.spritecollideany(self, enemy_group, pygame.sprite.collide_rect)):
-                self.kill()
+        self.rect = self.rect.move(round(self.speed * math.cos(self.angle) * delta_time),
+                                   round(self.speed * math.sin(self.angle) * delta_time))
+        if (pygame.sprite.spritecollideany(self, all_borders) or
+                pygame.sprite.spritecollideany(self, all_objects) or
+                pygame.sprite.spritecollideany(self, enemy_group, pygame.sprite.collide_rect)):
+            self.kill()
 
 
 class Necromancer_boss_first(pygame.sprite.Sprite):
@@ -219,7 +223,8 @@ class Necromancer_boss_first(pygame.sprite.Sprite):
         self.target = [random.randint(300, 1700), random.randint(200, 800)]
         self.angl = math.atan2(self.target[1] - self.rect.y, self.target[0] - self.rect.x)
 
-        self.stop_images = [load_image('first_stop' + str(i) + '.png', 'characters/bosses/necromancer') for i in range(2)]
+        self.stop_images = [load_image('first_stop' + str(i) + '.png', 'characters/bosses/necromancer') for i in
+                            range(2)]
         self.stop_tick = 0
 
         self.attack_images = [load_image('attack' + str(i) + '.png', 'characters/bosses/necromancer') for i in range(4)]
@@ -246,7 +251,8 @@ class Necromancer_boss_first(pygame.sprite.Sprite):
                     self.cansummon = False
                     self.lastsummon = time.process_time()
                     self.summon()
-        self.rect = self.rect.move(round(self.speed * math.cos(self.angl) * delta_time), round(self.speed * math.sin(self.angl) * delta_time))
+        self.rect = self.rect.move(round(self.speed * math.cos(self.angl) * delta_time),
+                                   round(self.speed * math.sin(self.angl) * delta_time))
         if abs(self.target[0] - self.rect.x) <= 200 and abs(self.target[1] - self.rect.y) <= 200:
             self.target = [random.randint(300, 1600), random.randint(200, 600)]
             self.angl = math.atan2(self.target[1] - self.rect.y, self.target[0] - self.rect.x)
@@ -276,7 +282,6 @@ class Necromancer_boss_first(pygame.sprite.Sprite):
         self.check_damage()
         self.image = pygame.transform.scale(self.image, (200, 200))
         screen_game.blit(self.image, (self.rect.x, self.rect.y))
-
 
     def check_damage(self):
         if pygame.sprite.spritecollide(self, attack_group, False, pygame.sprite.collide_rect) and not CANMELEE:
@@ -340,7 +345,7 @@ class Arc(pygame.sprite.Sprite):
         if pygame.sprite.spritecollide(self, all_borders, False, pygame.sprite.collide_mask):
             self.image = arc1
             self.kill()
-            
+
         self.rect = self.rect.move(0, -2)
 
 
@@ -419,16 +424,17 @@ class Necromancer_boss_second(pygame.sprite.Sprite):
                 self.lastarc = time.process_time()
 
             if self.canskeleton:
-                Skeleton(random.randint(300, 1600,), random.randint(200, 600))
+                Skeleton(random.randint(300, 1600, ), random.randint(200, 600))
                 self.canskeleton = False
                 self.lastskeleton = time.process_time()
 
             if self.canflame:
-                summoned_flame(random.randint(300, 1600,), random.randint(200, 600))
+                summoned_flame(random.randint(300, 1600, ), random.randint(200, 600))
                 self.canflame = False
                 self.lastflame = time.process_time()
 
-            self.rect = self.rect.move(round(self.speed * math.cos(self.angl) * delta_time), round(self.speed * math.sin(self.angl) * delta_time))
+            self.rect = self.rect.move(round(self.speed * math.cos(self.angl) * delta_time),
+                                       round(self.speed * math.sin(self.angl) * delta_time))
             if abs(self.target[0] - self.rect.x) <= 200 and abs(self.target[1] - self.rect.y) <= 200:
                 self.target = [random.randint(300, 1600), random.randint(200, 600)]
                 self.angl = math.atan2(self.target[1] - self.rect.y, self.target[0] - self.rect.x)
@@ -439,7 +445,7 @@ class Necromancer_boss_second(pygame.sprite.Sprite):
         self.check_damage()
         self.image = pygame.transform.scale(self.image, (200, 200))
         screen_game.blit(self.image, (self.rect.x, self.rect.y))
-    
+
     def check_damage(self):
         if pygame.sprite.spritecollide(self, attack_group, False, pygame.sprite.collide_rect) and not CANMELEE:
             if not self.attacked:
@@ -466,7 +472,8 @@ class Necromancer_boss_second(pygame.sprite.Sprite):
                 self.timer = time.process_time()
                 summoned_flame(self.rect.x - 200, self.rect.y - 200, 700, 700)
                 for _ in range(15):
-                    Coin(random.randint(self.rect.x - 50, self.rect.x + 150), random.randint(self.rect.y - 50, self.rect.y + 150))
+                    Coin(random.randint(self.rect.x - 50, self.rect.x + 150),
+                         random.randint(self.rect.y - 50, self.rect.y + 150))
                 create_mana_particles(self.rect.center, random.randint(40, 80))
                 Potion(self.rect.x, self.rect.y, 'potion_hp')
             self.die = True
@@ -639,7 +646,11 @@ class Player(pygame.sprite.Sprite):
                                 'hp_cell': 15,
                                 'all_hp': 60,
                                 'mana': 50,
-                                'unlocked_mana': 50,}
+                                'unlocked_mana': 50,
+                                'meele_power': 0,
+                                'magic_power': 0,
+                                'protection': 0,
+                                'critical_damage': 0}
 
     def movement(self):
         # Перемещение
@@ -647,7 +658,7 @@ class Player(pygame.sprite.Sprite):
         if not keys:
             return
         if keys[ord(SETTINGS['forward'])]:
-            if self.rect.y - self.speed * delta_time>= 190:
+            if self.rect.y - self.speed * delta_time >= 190:
                 self.rect.y -= self.speed * delta_time
                 self.animation_flag = True
                 if pygame.sprite.spritecollideany(self, all_objects):
@@ -850,7 +861,8 @@ class Player(pygame.sprite.Sprite):
                                              random.randint(self.rect.y + 20, self.rect.y + 20))
                                 if 0.7 <= chance < 0.8:
                                     weapon_on_ground(self.rect.x, self.rect.y + 20,
-                                                     melee_weapons[random.choice(list(melee_weapons.keys()))]['name'], True)
+                                                     melee_weapons[random.choice(list(melee_weapons.keys()))]['name'],
+                                                     True)
                                 if 0.8 <= chance < 0.9:
                                     weapon_on_ground(self.rect.x, self.rect.y + 20,
                                                      magic_weapons[random.choice(list(magic_weapons.keys()))]['name'],
@@ -862,9 +874,9 @@ class Player(pygame.sprite.Sprite):
             # Комната жизни
             elif room.this_room[0] == 'life_room':
                 if map_list[room.room_number[0]][room.room_number[1]][1] != 'used':
-                    if ((395 <= self.rect.x <= 605 and 430 <= self.rect.y <= 590) or 
-                        (590 <= self.rect.x <= 810 and 190 <= self.rect.y <= 325) or 
-                        (790 <= self.rect.x <= 1010 and 445 <= self.rect.y <= 580)):
+                    if ((395 <= self.rect.x <= 605 and 430 <= self.rect.y <= 590) or
+                            (590 <= self.rect.x <= 810 and 190 <= self.rect.y <= 325) or
+                            (790 <= self.rect.x <= 1010 and 445 <= self.rect.y <= 580)):
 
                         map_list[room.room_number[0]][room.room_number[1]][1] = 'used'
                         chance = random.random()
@@ -877,7 +889,7 @@ class Player(pygame.sprite.Sprite):
                                 if player.characteristics['unlocked_hp'] + 1 <= 10:
                                     player.characteristics['unlocked_hp'] += 1
                                     player.characteristics['all_hp'] += player.characteristics['hp_cell']
-                            
+
                             main_text = 'Повезло...'
                             text_tick = 0
                             max_text_tick = 100
@@ -894,7 +906,7 @@ class Player(pygame.sprite.Sprite):
                                 player.characteristics['unlocked_hp'] -= 1
                                 if player.characteristics['hp'] > player.characteristics['unlocked_hp']:
                                     player.characteristics['all_hp'] -= player.characteristics['hp_cell']
-                            
+
                             main_text = 'Не повезло)'
                             text_tick = 0
                             max_text_tick = 100
@@ -967,11 +979,11 @@ class Player(pygame.sprite.Sprite):
 
         magic_font = pygame.font.Font('data/shrifts/coins_shrift.ttf', 50)
         magic_text = magic_font.render(f'{str(self.characteristics["mana"])}',
-                                    False, (20, 20, 20))
+                                       False, (20, 20, 20))
         screen_game.blit(magic_text, (395, 110))
 
         magic_text = magic_font.render(f'/{str(self.characteristics["unlocked_mana"])}',
-                                    False, (20, 20, 20))
+                                       False, (20, 20, 20))
         screen_game.blit(magic_text, (485, 110))
 
         for i in range(self.characteristics['hp']):
@@ -1081,7 +1093,7 @@ class Room:
                 screen_game.blit(dark_sphere_1.image_fin, (dark_sphere_1.rect.x, dark_sphere_1.rect.y))
                 screen_game.blit(dark_sphere_2.image_fin, (dark_sphere_2.rect.x, dark_sphere_2.rect.y))
                 screen_game.blit(dark_sphere_3.image_fin, (dark_sphere_3.rect.x, dark_sphere_3.rect.y))
-        
+
         # Магазины
         elif room.this_room[0] == 'shop' or room.this_room[0] == 'upgrade_shop':
             if room.this_room[0] == 'shop':
@@ -1113,24 +1125,23 @@ class Room:
 
                 for _ in range(random.randint(1, 2)):
                     all_monsters.append(Enemy_Knight())
-                    
+
                 for _ in range(random.randint(2, 3)):
                     all_monsters.append((Skeleton(random.randint(350, 1450), random.randint(190, 645))))
-                
+
                 for _ in range(random.randint(1, 2)):
                     all_monsters.append((Archer()))
                     arrows = pygame.sprite.Group()
-            
-        
+
+
         # Комната с боссом
         elif self.this_room[0] == 'boss':
             if self.this_room[1] != 'used':
                 FIGHT = True
                 self.this_room[1] = 'used'
                 boss_warning('necromancer_warning.png', 'characters/bosses/necromancer')
-        
-        map_list[room.room_number[0]][room.room_number[1]][2] = 'visited'
 
+        map_list[room.room_number[0]][room.room_number[1]][2] = 'visited'
 
     # Проверка наличия комнаты в месте куда вы хотите перейти и изменение номера вашей комнаты
     def change_room_number(self, where, change):
@@ -1201,7 +1212,7 @@ class Monsters(pygame.sprite.Sprite):
         self.attacked = False
         self.attacked_time = 0
         self.max_attacked_time = 10
-        
+
         self.run = False
 
         self.life = True
@@ -1209,10 +1220,13 @@ class Monsters(pygame.sprite.Sprite):
 
     # Получение урона
     def check_damage(self):
+        chance_crit = 1
         if pygame.sprite.spritecollide(self, attack_group, False, pygame.sprite.collide_rect) and not CANMELEE:
             if not self.attacked:
                 self.attacked = True
-                self.characteristics['hp'] -= player.melee1['damage']
+                if random.random() <= player.characteristics['critical_damage']:
+                    chance_crit = 2
+                self.characteristics['hp'] -= player.melee1['damage'] + player.characteristics['melle_power'] * chance_crit
             else:
                 if self.attacked_time == self.max_attacked_time:
                     self.attacked_time = -1
@@ -1222,7 +1236,9 @@ class Monsters(pygame.sprite.Sprite):
         if pygame.sprite.spritecollide(self, magic_group, False, pygame.sprite.collide_rect):
             if not self.attacked:
                 self.attacked = True
-                self.characteristics['hp'] -= player.magic1['damage']
+                if random.random() <= player.characteristics['critical_damage']:
+                    chance_crit = 2
+                self.characteristics['hp'] -= player.magic1['damage'] + player.characteristics['magic_power'] * chance_crit
             else:
                 if self.attacked_time == self.max_attacked_time:
                     self.attacked_time = -1
@@ -1235,22 +1251,22 @@ class Monsters(pygame.sprite.Sprite):
             self.kill()
             global kill_someone
             kill_someone = True
-        
+
         if not (340 + self.speed * delta_time <= self.rect.x <= 1470 - self.speed * delta_time and
-                    170 + self.speed * delta_time <= self.rect.y <= 665 - self.speed * delta_time):
+                170 + self.speed * delta_time <= self.rect.y <= 665 - self.speed * delta_time):
             self.kill()
-    
+
 
 class Skeleton(Monsters):
     def __init__(self, x, y):
         Monsters.__init__(self)
-        self.animations = [[[skeleton_left_0, skeleton_left_1, skeleton_left_2, 
-                            skeleton_left_3, skeleton_left_4, skeleton_left_5, skeleton_left_6],
+        self.animations = [[[skeleton_left_0, skeleton_left_1, skeleton_left_2,
+                             skeleton_left_3, skeleton_left_4, skeleton_left_5, skeleton_left_6],
                             [skeleton_left_atack_0, skeleton_left_atack_1,
                              skeleton_left_atack_2, skeleton_left_atack_3, skeleton_left_atack_4]],
 
-                           [[skeleton_right_0, skeleton_right_1, skeleton_right_2, 
-                            skeleton_right_3, skeleton_right_4, skeleton_right_5, skeleton_right_6],
+                           [[skeleton_right_0, skeleton_right_1, skeleton_right_2,
+                             skeleton_right_3, skeleton_right_4, skeleton_right_5, skeleton_right_6],
                             [skeleton_right_atack_0, skeleton_right_atack_1,
                              skeleton_right_atack_2, skeleton_right_atack_3, skeleton_right_atack_4]]]
 
@@ -1296,10 +1312,10 @@ class Skeleton(Monsters):
 
         if self.run:
             # Перемещение к игроку
-            if (350 < self.rect.x + self.dis_x * self.speed * delta_time < 1450 and 
-                190 < self.rect.y + self.dis_y * self.speed * delta_time < 645):
-                    self.rect.x += self.dis_x * self.speed * delta_time
-                    self.rect.y += self.dis_y * self.speed * delta_time
+            if (350 < self.rect.x + self.dis_x * self.speed * delta_time < 1450 and
+                    190 < self.rect.y + self.dis_y * self.speed * delta_time < 645):
+                self.rect.x += self.dis_x * self.speed * delta_time
+                self.rect.y += self.dis_y * self.speed * delta_time
 
             # Анимация ходьбы
             self.form = [self.side_animation, self.walk_animation]
@@ -1322,7 +1338,7 @@ class Skeleton(Monsters):
                 self.walk_wait_tick = 0
                 pygame.mixer.Channel(sounds['hurt']).play(pygame.mixer.Sound(
                     'data/music_and_sounds/sounds/main_hero_sounds/hurt.mp3'))
-                player.characteristics['all_hp'] -= self.characteristics['damage']
+                player.characteristics['all_hp'] -= self.characteristics['damage'] - player.characteristics['protection']
         else:
             # Анимация стояния на месте
             self.form = [self.side_animation, 0]
@@ -1353,20 +1369,19 @@ class Skeleton(Monsters):
         self.mask = pygame.mask.from_surface(self.image)
 
         self.time_animation = (self.time_animation + 1) % (self.max_time_animation + 1)
-        
+
         if not self.attack:
             self.walk_wait_tick += 1
-        
-        self.check_damage()
 
+        self.check_damage()
 
 
 class Enemy_Knight(Monsters):
     def __init__(self):
         Monsters.__init__(self)
-        self.animations = [[enemy_knight_left_0, enemy_knight_left_1, enemy_knight_left_2, 
+        self.animations = [[enemy_knight_left_0, enemy_knight_left_1, enemy_knight_left_2,
                             enemy_knight_left_3, enemy_knight_left_4, enemy_knight_left_5],
-                           [enemy_knight_right_0, enemy_knight_right_1, enemy_knight_right_2, 
+                           [enemy_knight_right_0, enemy_knight_right_1, enemy_knight_right_2,
                             enemy_knight_right_3, enemy_knight_right_4, enemy_knight_right_5]]
 
         self.image = self.animations[1][0]
@@ -1404,10 +1419,10 @@ class Enemy_Knight(Monsters):
 
         if self.run:
             # Перемещение к игроку
-            if (350 < self.rect.x + self.dis_x * self.speed * delta_time < 1450 and 
-                190 < self.rect.y + self.dis_y * self.speed * delta_time < 645):
-                    self.rect.x += self.dis_x * self.speed * delta_time
-                    self.rect.y += self.dis_y * self.speed * delta_time
+            if (350 < self.rect.x + self.dis_x * self.speed * delta_time < 1450 and
+                    190 < self.rect.y + self.dis_y * self.speed * delta_time < 645):
+                self.rect.x += self.dis_x * self.speed * delta_time
+                self.rect.y += self.dis_y * self.speed * delta_time
 
             # Анимация прыжка
             self.form = [self.side_animation, self.walk_animation]
@@ -1417,19 +1432,19 @@ class Enemy_Knight(Monsters):
             # Конец прыжка
             if not (350 + self.speed * delta_time <= self.rect.x <= 1450 - self.speed * delta_time and
                     190 + self.speed * delta_time <= self.rect.y <= 645 - self.speed * delta_time):
-                        self.run = False
-                        self.can_attack = True
-                        self.attack_wait_tick = 0
-                        self.max_attack_wait_tick = random.randint(75, 150)
+                self.run = False
+                self.can_attack = True
+                self.attack_wait_tick = 0
+                self.max_attack_wait_tick = random.randint(75, 150)
 
             # Атака
             if pygame.sprite.collide_mask(self, player):
                 if self.can_attack:
                     pygame.mixer.Channel(sounds['hurt']).play(pygame.mixer.Sound(
                         'data/music_and_sounds/sounds/main_hero_sounds/hurt.mp3'))
-                    player.characteristics['all_hp'] -= self.characteristics['damage']
+                    player.characteristics['all_hp'] -= self.characteristics['damage'] - player.characteristics['protection']
                     self.can_attack = False
-                            
+
             self.time_animation = (self.time_animation + 1) % (self.max_time_animation + 1)
         else:
             # Анимация стояния на месте
@@ -1447,18 +1462,18 @@ class Enemy_Knight(Monsters):
         self.mask = pygame.mask.from_surface(self.animations[self.form[0]][self.form[1]])
 
         self.attack_wait_tick += 1
-        
+
         self.check_damage()
 
 
 class Archer(Monsters):
     def __init__(self):
         Monsters.__init__(self)
-        self.animations = [[archer_left_atack_0, archer_left_atack_1, archer_left_atack_2, archer_left_atack_3, 
+        self.animations = [[archer_left_atack_0, archer_left_atack_1, archer_left_atack_2, archer_left_atack_3,
                             archer_left_atack_4, archer_left_atack_5, archer_left_atack_6, archer_left_atack_7],
 
-                            [archer_right_atack_0, archer_right_atack_1, archer_right_atack_2, archer_right_atack_3, 
-                             archer_right_atack_4, archer_right_atack_5, archer_right_atack_6, archer_right_atack_7]]
+                           [archer_right_atack_0, archer_right_atack_1, archer_right_atack_2, archer_right_atack_3,
+                            archer_right_atack_4, archer_right_atack_5, archer_right_atack_6, archer_right_atack_7]]
 
         self.image = self.animations[1][0]
         self.mask = pygame.mask.from_surface(self.image)
@@ -1523,22 +1538,22 @@ class Archer(Monsters):
         # Отображение анимации
         self.image = self.animations[self.side_animation][self.attack_animation]
         self.mask = pygame.mask.from_surface(self.animations[self.side_animation][self.attack_animation])
-        
+
         if not self.attack:
             self.attack_wait_tick += 1
-        
+
         self.check_damage()
 
 
 class Arrow(Monsters):
     def __init__(self, start_pos):
         Monsters.__init__(self)
-        
+
         self.image = arrow
         self.mask = pygame.mask.from_surface(self.image)
         self.rect = self.image.get_rect()
         self.rect.center = start_pos
-        self.speed = 1500
+        self.speed = 1600
 
         self.characteristics = {'hp': 100000000,
                                 'damage': 5}
@@ -1557,17 +1572,17 @@ class Arrow(Monsters):
         self.rect.center += self.direction * self.speed * delta_time
 
         # Удаляем стрелу, если она вышла за пределы экрана
-        if (pygame.sprite.spritecollideany(self, all_borders) or 
-            pygame.sprite.spritecollideany(self, all_objects)):
-                self.kill()
+        if (pygame.sprite.spritecollideany(self, all_borders) or
+                pygame.sprite.spritecollideany(self, all_objects)):
+            self.kill()
 
         # Попадание
         if pygame.sprite.collide_mask(self, player):
             self.kill()
             pygame.mixer.Channel(sounds['hurt']).play(pygame.mixer.Sound(
                 'data/music_and_sounds/sounds/main_hero_sounds/hurt.mp3'))
-            player.characteristics['all_hp'] -= self.characteristics['damage']
-        
+            player.characteristics['all_hp'] -= self.characteristics['damage'] - player.characteristics['protection']
+
         screen_game.blit(self.image, (self.rect.x, self.rect.y))
 
 
@@ -1590,18 +1605,17 @@ class Mana_Particle(pygame.sprite.Sprite):
 
     def update(self):
         if self.move:
-            # применяем гравитационный эффект: 
+            # применяем гравитационный эффект:
             # движение с ускорением под действием гравитации
             self.velocity[1] += self.gravity
             # перемещаем частицу
             self.rect.x += self.velocity[0]
             self.rect.y += self.velocity[1]
-        
-        if (self.rect.y - self.start_pos_y > self.razn or 
-            pygame.sprite.spritecollideany(self, all_borders) or 
-            pygame.sprite.spritecollideany(self, all_objects)):
-                self.move = False
 
+        if (self.rect.y - self.start_pos_y > self.razn or
+                pygame.sprite.spritecollideany(self, all_borders) or
+                pygame.sprite.spritecollideany(self, all_objects)):
+            self.move = False
 
         if pygame.sprite.spritecollide(self, player_group, False, pygame.sprite.collide_mask):
             pygame.mixer.Channel(sounds['mana']).play(
@@ -1609,8 +1623,6 @@ class Mana_Particle(pygame.sprite.Sprite):
             self.kill()
             if player.characteristics['mana'] + 1 <= player.characteristics['unlocked_mana']:
                 player.characteristics['mana'] += 1
-        
-
 
 
 def create_mana_particles(position, count):
@@ -1663,13 +1675,13 @@ class weapon_on_ground(pygame.sprite.Sprite):
                         weapon_on_ground(self.rect.x, self.rect.y, player.melee1['name'], True)
                         player.melee1 = melee_weapons[self.name]
                         interface()
-                        
+
                     else:
                         weapon_on_ground(self.rect.x, self.rect.y, player.magic1['name'], False)
                         player.magic1 = magic_weapons[self.name]
                         interface()
-                        
-                    screen_game.blit(load_image(player.melee1['picture'], 'weapon/edged_weapons'),(270, 850))
+
+                    screen_game.blit(load_image(player.melee1['picture'], 'weapon/edged_weapons'), (270, 850))
                     screen_game.blit(load_image(player.magic1['picture'], 'weapon/magic'), (470, 850))
                     self.kill()
 
@@ -1703,11 +1715,24 @@ class Potion(pygame.sprite.Sprite):
                             player.characteristics['mana'] += 25
                         else:
                             player.characteristics['mana'] = player.characteristics['unlocked_mana']
+
                     elif self.potion == 'potion_hp':
                         if player.characteristics['hp'] + 2 <= player.characteristics['unlocked_hp']:
-                            player.characteristics['all_hp'] = (player.characteristics['hp'] + 2) * player.characteristics['hp_cell']
+                            player.characteristics['all_hp'] = (player.characteristics['hp'] + 2) * \
+                                                               player.characteristics['hp_cell']
                         else:
-                            player.characteristics['all_hp'] = player.characteristics['unlocked_hp'] * player.characteristics['hp_cell']
+                            player.characteristics['all_hp'] = player.characteristics['unlocked_hp'] * \
+                                                               player.characteristics['hp_cell']
+
+                    elif self.potion == 'potion_protection':
+                        player.characteristics['protection'] += 2
+
+                    elif self.potion == 'potion_meele_power':
+                        player.characteristics['meele_power'] += 3
+
+                    elif self.potion == 'potion_magic_power':
+                        player.characteristics['magic_power'] += 3
+
                     pygame.mixer.Channel(sounds['diffrent']).play(
                         pygame.mixer.Sound('data/music_and_sounds/sounds/main_hero_sounds/drink.mp3'))
                     self.kill()
@@ -1729,7 +1754,8 @@ class Pricing(pygame.sprite.Sprite):
             self.image_name = load_im([name, 100, 100], r'weapon\potions')
         self.font = pygame.font.Font(None, 29)
         self.surface1 = self.font.render(f'{name}', True, pygame.Color('White'))
-        self.surface2 = self.font.render(f'стоимость: {int(cost * PRICING_MULTY)} монет(ы)', True, pygame.Color('White'))
+        self.surface2 = self.font.render(f'стоимость: {int(cost * PRICING_MULTY)} монет(ы)', True,
+                                         pygame.Color('White'))
         self.image.blit(self.surface1, (5, 105))
         self.image.blit(self.surface2, (0, 140))
         self.image.blit(self.image_name, (5, 5))
@@ -1760,24 +1786,74 @@ class Pricing(pygame.sprite.Sprite):
                         self.kill()
 
 
+class Upgrades(pygame.sprite.Sprite):
+    def __init__(self, x, y, potion):
+        global room, OBJECTS
+        super().__init__(items_this_room_group)
+        self.image = load_image(f'{potion}.png', r'weapon/potions')
+        self.mask = pygame.mask.from_surface(self.image)
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+        self.potion = potion
+        if room.this_room[0] in OBJECTS:
+            OBJECTS[room.this_room[0]].append(self)
+        else:
+            OBJECTS[room.this_room[0]] = [self]
+
+    def update(self, event):
+        global player_group, player
+        if pygame.sprite.spritecollide(self, player_group, False, pygame.sprite.collide_mask):
+            if event.type == pygame.KEYDOWN:
+                if event.unicode == SETTINGS['interaction']:
+                    for i in OBJECTS:
+                        for j in OBJECTS[i]:
+                            if j == self:
+                                OBJECTS[i].remove(j)
+                    if self.potion == 'potion_mana':
+                        if player.characteristics['mana'] + 25 <= player.characteristics['unlocked_mana']:
+                            player.characteristics['mana'] += 25
+                        else:
+                            player.characteristics['mana'] = player.characteristics['unlocked_mana']
+                    elif self.potion == 'potion_hp':
+                        if player.characteristics['hp'] + 2 <= player.characteristics['unlocked_hp']:
+                            player.characteristics['all_hp'] = (player.characteristics['hp'] + 2) * \
+                                                               player.characteristics['hp_cell']
+                        else:
+                            player.characteristics['all_hp'] = player.characteristics['unlocked_hp'] * \
+                                                               player.characteristics['hp_cell']
+                    pygame.mixer.Channel(sounds['diffrent']).play(
+                        pygame.mixer.Sound('data/music_and_sounds/sounds/main_hero_sounds/drink.mp3'))
+                    self.kill()
+
 # Типы оружия
 melee_weapons = {
     'usual_sword': {'name': 'usual_sword', 'damage': 20, 'CANMELEE': 0.3, 'hitbox_type': attack_rect, 'hitboxtime': 0.1,
-                    'picture': 'usual_sword.png', 'sound': 'sword_hit3.mp3', 'cost': 100},
+                    'picture': 'usual_sword.png', 'sound': 'sword_hit3.mp3', 'cost': 30},
     'usual_hammer': {'name': 'usual_hammer', 'damage': 40, 'CANMELEE': 1, 'hitbox_type': attack_rect, 'hitboxtime': 0.3,
-                     'picture': 'usual_hammer.png', 'sound': 'hammer_hit.mp3', 'cost': 200}
+                     'picture': 'usual_hammer.png', 'sound': 'hammer_hit.mp3', 'cost': 60}
 }
 
 magic_weapons = {
     'usual_fireball': {'name': 'usual_fireball', 'damage': 20, 'CANMELEE': 0.5, 'type': fireball,
-                       'mana': 5, 'picture': 'usual_fireball.png', 'sound': 'fireball.mp3', 'cost': 150},
+                       'mana': 5, 'picture': 'usual_fireball.png', 'sound': 'fireball.mp3', 'cost': 30},
     'usual_thunderbolt': {'name': 'usual_thunderbolt', 'damage': 40, 'CANMELEE': 1, 'type': thunderbolt,
-                          'mana': 10, 'picture': 'usual_thunderbolt.png', 'sound': 'thunderbolt.mp3', 'cost': 250}
+                          'mana': 10, 'picture': 'usual_thunderbolt.png', 'sound': 'thunderbolt.mp3', 'cost': 70}
 }
 
 potions = {
-    'potion_hp': {'name': 'potion_hp', 'add': 10, 'max_add': 10, 'cost': 200},
-    'potion_mana': {'name': 'potion_mana', 'add': 10, 'max_add': 10, 'cost': 200}
+    'potion_hp': {'name': 'potion_hp', 'add': 10, 'max_add': 10, 'cost': 40},
+    'potion_mana': {'name': 'potion_mana', 'add': 10, 'max_add': 10, 'cost': 40},
+    'potion_protection': {'name': 'potion_protection', 'add': 10, 'max_add': 10, 'cost': 40},
+    'potion_meele_power': {'name': 'potion_meele_power', 'add': 10, 'max_add': 10, 'cost': 40},
+    'potion_magic_power': {'name': 'potion_magic_power', 'add': 10, 'max_add': 10, 'cost': 40}
+}
+
+upgrades = {
+    'add_hp_unlocked': {'name': 'add_hp_unlocked', 'cost': 60},
+    'add_hp_cell': {'name': 'add_hp_cell', 'cost': 60},
+    'add_mana': {'name': 'add_mana', 'cost': 60},
+    'add_critical_damage': {'name': 'add_critical_damage', 'cost': 60}
 }
 
 level = 1
@@ -1811,7 +1887,7 @@ def start(my_level):
 
     # Фон и интерфейс
     interface()
-    screen_game.blit(load_image(player.melee1['picture'], 'weapon/edged_weapons'),(270, 850))
+    screen_game.blit(load_image(player.melee1['picture'], 'weapon/edged_weapons'), (270, 850))
     screen_game.blit(load_image(player.magic1['picture'], 'weapon/magic'), (470, 850))
 
     FPS = 120
@@ -1922,7 +1998,7 @@ def start(my_level):
     warning = False
     kill_someone = False
     chest = Object('chest_animation_', 'map/chest', 900, 450, 150, 150, 5)
-    
+
     # Основной цикл
     running = True
     while running:
@@ -2022,7 +2098,7 @@ def start(my_level):
             boss_group.update()
             magic_group.update()
             mana_particle_group.update()
-            
+
             magic_group.draw(screen_game)
             attack_group.draw(screen_game)
             coins_group.draw(screen_game)
@@ -2037,10 +2113,10 @@ def start(my_level):
             # Обновление экрана сверху
             if main_text != '':
                 if not (main_text == 'Пути назад уже нет' and map_list[room.room_number[0]][room.room_number[1]][
-                                      0] != 'door_start'):
+                    0] != 'door_start'):
                     show_main_text(text_size)
             screen_game.blit(pygame.font.Font('data/shrifts/main_shrift.ttf', 60).render(
-                                            f'Этаж: {level}', False, (20, 20, 20)), (1355, 885))
+                f'Этаж: {level}', False, (20, 20, 20)), (1355, 885))
 
         clock.tick(FPS)
         pygame.display.flip()
