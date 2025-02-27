@@ -187,3 +187,11 @@ arc1 = load_im(['arc1', 100, 50], 'characters/bosses/necromancer')
 # Магия
 fireball_image = load_im(['fireball', 50, 30], 'weapon/magic')
 mana_image = load_im(['mana_image', 20, 20], 'weapon/magic')
+
+thunderbolt_0 = load_im(['thunderbolt_0', 70, 190], 'weapon/magic/thunderbolt')
+thunderbolt_1 = load_im(['thunderbolt_1', 70, 190], 'weapon/magic/thunderbolt')
+thunderbolt_2 = load_im(['thunderbolt_2', 70, 190], 'weapon/magic/thunderbolt')
+thunderbolt_3 = load_im(['thunderbolt_3', 70, 190], 'weapon/magic/thunderbolt')
+thunderbolt_4 = load_im(['thunderbolt_4', 70, 190], 'weapon/magic/thunderbolt')
+thunderbolt_5 = load_im(['thunderbolt_5', 70, 190], 'weapon/magic/thunderbolt')
+thunderbolt_6 = load_im(['thunderbolt_6', 70, 190], 'weapon/magic/thunderbolt')
