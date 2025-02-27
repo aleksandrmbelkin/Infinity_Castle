@@ -23,6 +23,7 @@ enemy_group = pygame.sprite.Group()
 enemy_attack_group = pygame.sprite.Group()
 boss_group = pygame.sprite.Group()
 mana_particle_group = pygame.sprite.Group()
+arrows_group = pygame.sprite.Group()
 
 FIGHT = False
 CANFIRE = True
@@ -33,13 +34,13 @@ PRICING_MULTY = 0.9
 OBJECTS = {}
 
 # Проверка файла с информацией
-last_change_file_time = os.stat('account_info.txt').st_mtime
-if last_change_file_time != os.stat('account_info.txt').st_mtime:
-    print(os.stat('account_info.txt').st_mtime)
+last_change_file_time = os.stat('src/account_info.txt').st_mtime
+if last_change_file_time != os.stat('src/account_info.txt').st_mtime:
+    print(os.stat('src/account_info.txt').st_mtime)
     print('Вторжение в файлы игры')
     terminate()
 else:
-    nickname = str(open('account_info.txt').readline()).strip()
+    nickname = str(open('src/account_info.txt').readline()).strip()
 
 
 # Загрузка данных из настроек
@@ -124,39 +125,28 @@ class Button(pygame.sprite.Sprite):
                 db = sqlite3.connect("data\\InfinityCastle_db")
                 cur = db.cursor()
                 characteristics = player.characteristics
-                print(characteristics)
-                if characteristics["hp"] <= 0:
-                    cur.execute(f'UPDATE savings SET level = 1, coins = 0, '
-                                f'hp = 4, unlocked_hp = 4, '
-                                f'hp_cell = 15, all_hp = 60, '
-                                f'mana = 50, unlocked_mana = 50, '
-                                f'melee_power = 0, magic_power = 0, '
-                                f'protection = 0, critical_damage = 0, '
-                                f'melee_weapon = "usual_sword", magic_weapon = "usual_fireball" '
-                                f'WHERE Id = (SELECT Id FROM accounts WHERE nickname="{nickname}")')
-                else:
-                    cur.execute(f'UPDATE savings SET level = {level}, coins = {characteristics["coins"]}, '
-                                f'hp = {characteristics["hp"]}, unlocked_hp = {characteristics["unlocked_hp"]}, '
-                                f'hp_cell = {characteristics["hp_cell"]}, all_hp = {characteristics["all_hp"]}, '
-                                f'mana = {characteristics["mana"]}, unlocked_mana = {characteristics["unlocked_mana"]}, '
-                                f'melee_power = {characteristics["meele_power"]}, magic_power = {characteristics["magic_power"]}, '
-                                f'protection = {characteristics["protection"]}, critical_damage = {characteristics["critical_damage"]}, '
-                                f'melee_weapon = "{player.melee1["name"]}", magic_weapon = "{player.magic1["name"]}" '
-                                f'WHERE Id = (SELECT Id FROM accounts WHERE nickname="{nickname}")')
+                cur.execute(f'UPDATE savings SET level = {level}, coins = {characteristics["coins"]}, '
+                            f'hp = {characteristics["hp"]}, unlocked_hp = {characteristics["unlocked_hp"]}, '
+                            f'hp_cell = {characteristics["hp_cell"]}, all_hp = {characteristics["all_hp"]}, '
+                            f'mana = {characteristics["mana"]}, unlocked_mana = {characteristics["unlocked_mana"]}, '
+                            f'melee_power = {characteristics["meele_power"]}, magic_power = {characteristics["magic_power"]}, '
+                            f'protection = {characteristics["protection"]}, critical_damage = {characteristics["critical_damage"]}, '
+                            f'melee_weapon = "{player.melee1["name"]}", magic_weapon = "{player.magic1["name"]}" '
+                            f'WHERE Id = (SELECT Id FROM accounts WHERE nickname="{nickname}")')
                 db.commit()
                 db.close()
 
-                os.system('python main.py')
+                os.system('python src/main.py')
                 sys.exit()
             elif self.button_type == 'start_new_game.png':
                 pygame.quit()
-                os.system('python game.py')
+                os.system('python src/game.py')
                 sys.exit()
             elif self.button_type == 'game_stop.png':
                 terminate()
 
 
-class attack_rect(pygame.sprite.Sprite):
+class Attack_rect(pygame.sprite.Sprite):
     def __init__(self, x, y, k, player):
         super().__init__(attack_group)
         y += 10
@@ -169,7 +159,7 @@ class attack_rect(pygame.sprite.Sprite):
         self.timeappear = time.process_time()
 
 
-class fireball(pygame.sprite.Sprite):
+class Fireball(pygame.sprite.Sprite):
     def __init__(self, x, y, x1, y1):
         super().__init__(magic_group)
         global kill_someone
@@ -205,25 +195,42 @@ class fireball(pygame.sprite.Sprite):
             kill_someone = False
 
 
-class thunderbolt(pygame.sprite.Sprite):
+class Thunderbolt(pygame.sprite.Sprite):
     def __init__(self, x, y, x1, y1):
-        super().__init__(magic_group)
-        x += 50
-        y += 50
-        self.image = pygame.Surface((20, 20), pygame.SRCALPHA, 32)
-        pygame.draw.circle(self.image, pygame.Color("yellow"), center=(10, 10), radius=10)
-        self.rect = pygame.Rect(x, y, 20, 20)
-        self.mask = pygame.mask.from_surface(self.image)
-        self.angle = math.atan2(y1 - y, x1 - x)
-        self.speed = 700
+        super().__init__(mana_particle_group)
+        self.anim = 0
+        self.anim_wait = 0
+        self.max_anim_wait = 3
+        self.animations = [thunderbolt_0, thunderbolt_1, thunderbolt_2,
+                           thunderbolt_3, thunderbolt_4, thunderbolt_5, thunderbolt_6]
+        
+        self.image = self.animations[self.anim]
+
+        x, y = pygame.mouse.get_pos()
+        self.rect = pygame.Rect(x - 25, y - 25, 0, 0)
+        self.rect.x -= 25
+        self.rect.y -= 165
+        self.mask = pygame.mask.from_surface(self.animations[6])
+
+        self.my_rect = ThunderRect(x, y)
 
     def update(self, *args, **kwargs):
-        self.rect = self.rect.move(round(self.speed * math.cos(self.angle) * delta_time),
-                                   round(self.speed * math.sin(self.angle) * delta_time))
-        if (pygame.sprite.spritecollideany(self, all_borders) or
-                pygame.sprite.spritecollideany(self, all_objects) or
-                pygame.sprite.spritecollideany(self, enemy_group, pygame.sprite.collide_rect)):
-            self.kill()
+        if self.anim_wait == self.max_anim_wait:
+            self.anim = (self.anim + 1) % 7
+            self.image = self.animations[self.anim]
+            self.anim_wait = -1
+        
+            if self.anim == 0:
+                self.kill()
+                self.my_rect.kill()
+        self.anim_wait += 1
+
+
+class ThunderRect(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__(magic_group)
+        self.image = pygame.Surface((50, 50), pygame.SRCALPHA, 32)
+        self.rect = pygame.Rect(x - 5, y - 5, 10, 10)
 
 
 class Necromancer_boss_first(pygame.sprite.Sprite):
@@ -965,9 +972,6 @@ class Player(pygame.sprite.Sprite):
                         pygame.mixer.Channel(sounds['diffrent']).play(pygame.mixer.Sound(
                             'data/music_and_sounds/sounds/map_sounds/storm.mp3'))
 
-        elif event.key == pygame.K_z:
-            print(self.rect.x, self.rect.y)
-
     def attack(self, event):
         global CANFIRE, CANMELEE
         if self.side_animation == 'right':
@@ -1048,7 +1052,7 @@ class Player(pygame.sprite.Sprite):
             screen_game.blit(hp_states[2], (hp_states_2_x, 903))
 
 
-class Room:
+class Room():
     # Инициализация начальных сведений о комнатах
     def __init__(self, map_list, room_number):
         self.room_number = room_number
@@ -1256,8 +1260,8 @@ class Room:
 
 class Monsters(pygame.sprite.Sprite):
     # Инициализация начальных характеристик монстров
-    def __init__(self):
-        pygame.sprite.Sprite.__init__(self, enemy_group)
+    def __init__(self, group):
+        pygame.sprite.Sprite.__init__(self, group)
         self.x = random.randint(350, 1450)
         self.y = random.randint(190, 645)
 
@@ -1278,15 +1282,13 @@ class Monsters(pygame.sprite.Sprite):
 
     # Получение урона
     def check_damage(self):
-        global nickname
-
         chance_crit = 1
         if pygame.sprite.spritecollide(self, attack_group, False, pygame.sprite.collide_rect) and not CANMELEE:
             if not self.attacked:
                 self.attacked = True
                 if random.random() <= player.characteristics['critical_damage']:
                     chance_crit = 2
-                self.characteristics['hp'] -= player.melee1['damage'] + player.characteristics['meele_power'] * chance_crit
+                self.characteristics['hp'] -= (player.melee1['damage'] + player.characteristics['meele_power']) * chance_crit
             else:
                 if self.attacked_time == self.max_attacked_time:
                     self.attacked_time = -1
@@ -1298,7 +1300,7 @@ class Monsters(pygame.sprite.Sprite):
                 self.attacked = True
                 if random.random() <= player.characteristics['critical_damage']:
                     chance_crit = 2
-                self.characteristics['hp'] -= player.magic1['damage'] + player.characteristics['magic_power'] * chance_crit
+                self.characteristics['hp'] -= (player.magic1['damage'] + player.characteristics['magic_power']) * chance_crit
             else:
                 if self.attacked_time == self.max_attacked_time:
                     self.attacked_time = -1
@@ -1319,7 +1321,7 @@ class Monsters(pygame.sprite.Sprite):
 
 class Skeleton(Monsters):
     def __init__(self, x, y):
-        Monsters.__init__(self)
+        Monsters.__init__(self, enemy_group)
         self.animations = [[[skeleton_left_0, skeleton_left_1, skeleton_left_2,
                              skeleton_left_3, skeleton_left_4, skeleton_left_5, skeleton_left_6],
                             [skeleton_left_atack_0, skeleton_left_atack_1,
@@ -1438,7 +1440,7 @@ class Skeleton(Monsters):
 
 class Enemy_Knight(Monsters):
     def __init__(self):
-        Monsters.__init__(self)
+        Monsters.__init__(self, enemy_group)
         self.animations = [[enemy_knight_left_0, enemy_knight_left_1, enemy_knight_left_2,
                             enemy_knight_left_3, enemy_knight_left_4, enemy_knight_left_5],
                            [enemy_knight_right_0, enemy_knight_right_1, enemy_knight_right_2,
@@ -1528,7 +1530,7 @@ class Enemy_Knight(Monsters):
 
 class Archer(Monsters):
     def __init__(self):
-        Monsters.__init__(self)
+        Monsters.__init__(self, enemy_group)
         self.animations = [[archer_left_atack_0, archer_left_atack_1, archer_left_atack_2, archer_left_atack_3,
                             archer_left_atack_4, archer_left_atack_5, archer_left_atack_6, archer_left_atack_7],
 
@@ -1607,7 +1609,7 @@ class Archer(Monsters):
 
 class Arrow(Monsters):
     def __init__(self, start_pos):
-        Monsters.__init__(self)
+        Monsters.__init__(self, arrows_group)
 
         self.image = arrow
         self.mask = pygame.mask.from_surface(self.image)
@@ -1699,7 +1701,20 @@ def pause():
 
 
 def end():
-    global ending
+    global ending, nickname
+
+    db = sqlite3.connect("data\\InfinityCastle_db")
+    cur = db.cursor()
+    cur.execute(f'UPDATE savings SET level = 1, coins = 0, '
+                f'hp = 4, unlocked_hp = 4, '
+                f'hp_cell = 15, all_hp = 60, '
+                f'mana = 50, unlocked_mana = 50, '
+                f'melee_power = 0, magic_power = 0, '
+                f'protection = 0, critical_damage = 0, '
+                f'melee_weapon = "usual_sword", magic_weapon = "usual_fireball" '
+                f'WHERE Id = (SELECT Id FROM accounts WHERE nickname="{nickname}")')
+    db.commit()
+    db.close()
 
     ending = True
 
@@ -1892,17 +1907,17 @@ class Upgrades(pygame.sprite.Sprite):
 
 # Типы оружия
 melee_weapons = {
-    'usual_sword': {'name': 'usual_sword', 'damage': 20, 'CANMELEE': 0.3, 'hitbox_type': attack_rect, 'hitboxtime': 0.1,
+    'usual_sword': {'name': 'usual_sword', 'damage': 20, 'CANMELEE': 0.3, 'hitbox_type': Attack_rect, 'hitboxtime': 0.1,
                     'picture': 'usual_sword.png', 'sound': 'sword_hit3.mp3', 'cost': 30},
-    'usual_hammer': {'name': 'usual_hammer', 'damage': 40, 'CANMELEE': 1, 'hitbox_type': attack_rect, 'hitboxtime': 0.3,
+    'usual_hammer': {'name': 'usual_hammer', 'damage': 40, 'CANMELEE': 1, 'hitbox_type': Attack_rect, 'hitboxtime': 0.3,
                      'picture': 'usual_hammer.png', 'sound': 'hammer_hit.mp3', 'cost': 60}
 }
 
 magic_weapons = {
-    'usual_fireball': {'name': 'usual_fireball', 'damage': 20, 'CANMELEE': 0.5, 'type': fireball,
+    'usual_fireball': {'name': 'usual_fireball', 'damage': 20, 'CANMELEE': 0.5, 'type': Fireball,
                        'mana': 5, 'picture': 'usual_fireball.png', 'sound': 'fireball.mp3', 'cost': 30},
-    'usual_thunderbolt': {'name': 'usual_thunderbolt', 'damage': 40, 'CANMELEE': 1, 'type': thunderbolt,
-                          'mana': 10, 'picture': 'usual_thunderbolt.png', 'sound': 'thunderbolt.mp3', 'cost': 70}
+    'usual_thunderbolt': {'name': 'usual_thunderbolt', 'damage': 40, 'CANMELEE': 2, 'type': Thunderbolt,
+                          'mana': 15, 'picture': 'usual_thunderbolt.png', 'sound': 'thunderbolt.mp3', 'cost': 70}
 }
 
 potions = {
@@ -1947,11 +1962,6 @@ def start():
     width, height = 1920, 1080
     screen_game = pygame.display.set_mode((1920, 1080))
     pygame.display.set_caption('Infinity Castle')
-
-    # Фон и интерфейс
-    interface()
-    screen_game.blit(load_image(player.melee1['picture'], 'weapon/edged_weapons'), (270, 850))
-    screen_game.blit(load_image(player.magic1['picture'], 'weapon/magic'), (470, 850))
 
     FPS = 120
     clock = pygame.time.Clock()
@@ -2031,12 +2041,6 @@ def start():
 
     map_list, room_number = map_generation(level=level, map_size=4)
 
-    for i in map_list:
-        for j in i:
-            print(j[0], end='|')
-        print()
-    print(room_number)
-
     # Изменение игрока
     if level > 1:
         player.rect.x = 1425
@@ -2062,7 +2066,7 @@ def start():
     warning = False
     kill_someone = False
     chest = Object('chest_animation_', 'map/chest', 900, 450, 150, 150, 5)
-
+    
     # Основной цикл
     running = True
     while running:
@@ -2130,6 +2134,7 @@ def start():
         else:
             if len(enemy_group) == 0 and len(boss_group) == 0 and not warning:
                 FIGHT = False
+                arrows_group.empty()
             else:
                 FIGHT = True
 
@@ -2158,10 +2163,12 @@ def start():
                         i.canflame = True
                 except Exception:
                     pass
-
+        
             load_settings(channels)
             check_cursor(cursor_rect)
             interface()
+            screen_game.blit(load_image(player.melee1['picture'], 'weapon/edged_weapons'), (270, 850))
+            screen_game.blit(load_image(player.magic1['picture'], 'weapon/magic'), (470, 850))
             room.create()
             player.movement()
             player.update()
@@ -2172,6 +2179,7 @@ def start():
             boss_group.update()
             magic_group.update()
             mana_particle_group.update()
+            arrows_group.update()
 
             magic_group.draw(screen_game)
             attack_group.draw(screen_game)
@@ -2180,6 +2188,7 @@ def start():
             enemy_group.draw(screen_game)
             enemy_attack_group.draw(screen_game)
             mana_particle_group.draw(screen_game)
+            arrows_group.draw(screen_game)
 
             items_group.draw(screen_game)
             items_this_room_group.draw(screen_game)
