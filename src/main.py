@@ -346,7 +346,7 @@ def leader_board():
     font = pygame.font.Font(None, 30)
     text_coord = 50
     i = 0
-    for line in [i[0] + ' ' + str(i[1]) for i in sorted(inf_level_board, key=lambda x: x[1], reverse=True)][:5]:
+    for line in [i[0] + ' ' + str(i[1]) for i in sorted(inf_level_board, key=lambda x: x[1], reverse=True)][:15]:
         i += 1
         string_rendered = font.render(f'{i}) {line} этажа(ей)', 1, pygame.Color('white'))
         intro_rect = string_rendered.get_rect()
