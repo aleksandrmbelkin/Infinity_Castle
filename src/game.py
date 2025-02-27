@@ -1187,21 +1187,21 @@ class Room():
             if room.this_room[0] == 'shop':
                 if not self.flag:
                     Pricing(table_1.rect.x, table_1.rect.y, self.random_weapon, 'melee',
-                            melee_weapons[self.random_weapon]['cost'])
+                            melee_weapons[self.random_weapon]['cost'], melee_weapons[self.random_weapon]['name_map'])
                     Pricing(table_2.rect.x, table_2.rect.y, self.random_magic, 'magic',
-                            magic_weapons[self.random_magic]['cost'])
+                            magic_weapons[self.random_magic]['cost'], magic_weapons[self.random_magic]['name_map'])
                     Pricing(table_3.rect.x, table_3.rect.y, self.random_potion, 'potions',
-                            potions[self.random_potion]['cost'])
+                            potions[self.random_potion]['cost'], potions[self.random_potion]['name_map'])
                     self.flag = True
                 screen_game.blit(trader_shop.image_fin, (trader_shop.rect.x, trader_shop.rect.y))
             else:
                 if not self.flag:
                     Pricing(table_1.rect.x, table_1.rect.y, self.random_upgrade1, 'upgrades',
-                            upgrades[self.random_upgrade1]['cost'])
+                            upgrades[self.random_upgrade1]['cost'], upgrades[self.random_upgrade1]['name_map'])
                     Pricing(table_2.rect.x, table_2.rect.y, self.random_upgrade2, 'upgrades',
-                            upgrades[self.random_upgrade2]['cost'])
+                            upgrades[self.random_upgrade2]['cost'], upgrades[self.random_upgrade2]['name_map'])
                     Pricing(table_3.rect.x, table_3.rect.y, self.random_potion, 'potions',
-                            potions[self.random_potion]['cost'])
+                            potions[self.random_potion]['cost'], potions[self.random_potion]['name_map'])
                     self.flag = True
                 screen_game.blit(trader_upgrade.image_fin, (trader_upgrade.rect.x, trader_upgrade.rect.y))
 
@@ -1835,7 +1835,7 @@ class Potion(pygame.sprite.Sprite):
 
 
 class Pricing(pygame.sprite.Sprite):
-    def __init__(self, x, y, name, tip, cost):
+    def __init__(self, x, y, name, tip, cost, name_map):
         super().__init__(items_this_room_group)
         self.image = pygame.Surface((250, 170), pygame.SRCALPHA, 32)
         self.mask = pygame.mask.from_surface(self.image)
@@ -1851,13 +1851,13 @@ class Pricing(pygame.sprite.Sprite):
         elif tip == 'upgrades':
             self.image_name = load_im([name, 70, 70], r'weapon\upgrades')
         self.font = pygame.font.Font(None, 29)
-        self.surface1 = self.font.render(f'{name}', True, pygame.Color('White'))
+        self.surface1 = self.font.render(f'{name_map}', True, pygame.Color('White'))
         self.surface2 = self.font.render(f'стоимость: {int(cost * PRICING_MULTY)} монет(ы)', True,
                                          pygame.Color('White'))
         self.image.blit(self.surface1, (5, 105))
         self.image.blit(self.surface2, (0, 140))
         self.image.blit(self.image_name, (5, 5))
-        self.rect = pygame.Rect(x, y, 120, 120)
+        self.rect = pygame.Rect(x, y, 250, 120)
 
         if room.this_room[0] in OBJECTS:
             OBJECTS[room.this_room[0]].append(self)
@@ -1928,31 +1928,31 @@ class Upgrades(pygame.sprite.Sprite):
 # Типы оружия
 melee_weapons = {
     'usual_sword': {'name': 'usual_sword', 'damage': 20, 'CANMELEE': 0.3, 'hitbox_type': Attack_rect, 'hitboxtime': 0.1,
-                    'picture': 'usual_sword.png', 'sound': 'sword_hit3.mp3', 'cost': 30},
+                    'picture': 'usual_sword.png', 'sound': 'sword_hit3.mp3', 'cost': 30, 'name_map': 'Обычный меч'},
     'usual_hammer': {'name': 'usual_hammer', 'damage': 40, 'CANMELEE': 1, 'hitbox_type': Attack_rect, 'hitboxtime': 0.3,
-                     'picture': 'usual_hammer.png', 'sound': 'hammer_hit.mp3', 'cost': 60}
+                     'picture': 'usual_hammer.png', 'sound': 'hammer_hit.mp3', 'cost': 60, 'name_map': 'Молот'}
 }
 
 magic_weapons = {
     'usual_fireball': {'name': 'usual_fireball', 'damage': 20, 'CANMELEE': 0.5, 'type': Fireball,
-                       'mana': 5, 'picture': 'usual_fireball.png', 'sound': 'fireball.mp3', 'cost': 30},
+                       'mana': 5, 'picture': 'usual_fireball.png', 'sound': 'fireball.mp3', 'cost': 30, 'name_map': 'Огненный шар'},
     'usual_thunderbolt': {'name': 'usual_thunderbolt', 'damage': 40, 'CANMELEE': 2, 'type': Thunderbolt,
-                          'mana': 15, 'picture': 'usual_thunderbolt.png', 'sound': 'thunderbolt.mp3', 'cost': 70}
+                          'mana': 15, 'picture': 'usual_thunderbolt.png', 'sound': 'thunderbolt.mp3', 'cost': 70, 'name_map': 'Молния'}
 }
 
 potions = {
-    'potion_hp': {'name': 'potion_hp', 'add': 10, 'max_add': 10, 'cost': 40},
-    'potion_mana': {'name': 'potion_mana', 'add': 10, 'max_add': 10, 'cost': 40},
-    'potion_protection': {'name': 'potion_protection', 'add': 10, 'max_add': 10, 'cost': 40},
-    'potion_meele_power': {'name': 'potion_meele_power', 'add': 10, 'max_add': 10, 'cost': 40},
-    'potion_magic_power': {'name': 'potion_magic_power', 'add': 10, 'max_add': 10, 'cost': 40}
+    'potion_hp': {'name': 'potion_hp', 'add': 10, 'max_add': 10, 'cost': 40, 'name_map': 'Зелье здоровья'},
+    'potion_mana': {'name': 'potion_mana', 'add': 10, 'max_add': 10, 'cost': 40, 'name_map': 'Зелье маны'},
+    'potion_protection': {'name': 'potion_protection', 'add': 10, 'max_add': 10, 'cost': 40, 'name_map': 'Зелье защиты'},
+    'potion_meele_power': {'name': 'potion_meele_power', 'add': 10, 'max_add': 10, 'cost': 40, 'name_map': 'Увеличение силы оружия'},
+    'potion_magic_power': {'name': 'potion_magic_power', 'add': 10, 'max_add': 10, 'cost': 40, 'name_map': 'Увеличение силы магии'}
 }
 
 upgrades = {
-    'add_hp_unlocked': {'name': 'add_hp_unlocked', 'cost': 40},
-    'add_hp_cell': {'name': 'add_hp_cell', 'cost': 40},
-    'add_mana': {'name': 'add_mana', 'cost': 40},
-    'add_critical_damage': {'name': 'add_critical_damage', 'cost': 40}
+    'add_hp_unlocked': {'name': 'add_hp_unlocked', 'cost': 40, 'name_map': 'Открыть клетку здоровья'},
+    'add_hp_cell': {'name': 'add_hp_cell', 'cost': 40, 'name_map': 'Увеличить хп клетки здоровья'},
+    'add_mana': {'name': 'add_mana', 'cost': 40, 'name_map': 'Увеличить запас маны'},
+    'add_critical_damage': {'name': 'add_critical_damage', 'cost': 40, 'name_map': 'Шанс критического урона'}
 }
 
 level = 1
