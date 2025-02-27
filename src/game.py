@@ -125,20 +125,53 @@ class Button(pygame.sprite.Sprite):
                 db = sqlite3.connect("data\\InfinityCastle_db")
                 cur = db.cursor()
                 characteristics = player.characteristics
-                cur.execute(f'UPDATE savings SET level = {level}, coins = {characteristics["coins"]}, '
-                            f'hp = {characteristics["hp"]}, unlocked_hp = {characteristics["unlocked_hp"]}, '
-                            f'hp_cell = {characteristics["hp_cell"]}, all_hp = {characteristics["all_hp"]}, '
-                            f'mana = {characteristics["mana"]}, unlocked_mana = {characteristics["unlocked_mana"]}, '
-                            f'melee_power = {characteristics["meele_power"]}, magic_power = {characteristics["magic_power"]}, '
-                            f'protection = {characteristics["protection"]}, critical_damage = {characteristics["critical_damage"]}, '
-                            f'melee_weapon = "{player.melee1["name"]}", magic_weapon = "{player.magic1["name"]}" '
-                            f'WHERE Id = (SELECT Id FROM accounts WHERE nickname="{nickname}")')
+                if characteristics["hp"] <= 0:
+                    cur.execute(f'UPDATE savings SET level = 1, coins = 0, '
+                                f'hp = 4, unlocked_hp = 4, '
+                                f'hp_cell = 15, all_hp = 60, '
+                                f'mana = 50, unlocked_mana = 50, '
+                                f'melee_power = 0, magic_power = 0, '
+                                f'protection = 0, critical_damage = 0, '
+                                f'melee_weapon = "usual_sword", magic_weapon = "usual_fireball" '
+                                f'WHERE Id = (SELECT Id FROM accounts WHERE nickname="{nickname}")')
+                else:
+                    cur.execute(f'UPDATE savings SET level = {level}, coins = {characteristics["coins"]}, '
+                                f'hp = {characteristics["hp"]}, unlocked_hp = {characteristics["unlocked_hp"]}, '
+                                f'hp_cell = {characteristics["hp_cell"]}, all_hp = {characteristics["all_hp"]}, '
+                                f'mana = {characteristics["mana"]}, unlocked_mana = {characteristics["unlocked_mana"]}, '
+                                f'melee_power = {characteristics["meele_power"]}, magic_power = {characteristics["magic_power"]}, '
+                                f'protection = {characteristics["protection"]}, critical_damage = {characteristics["critical_damage"]}, '
+                                f'melee_weapon = "{player.melee1["name"]}", magic_weapon = "{player.magic1["name"]}" '
+                                f'WHERE Id = (SELECT Id FROM accounts WHERE nickname="{nickname}")')
                 db.commit()
                 db.close()
 
                 os.system('python src/main.py')
                 sys.exit()
             elif self.button_type == 'start_new_game.png':
+                db = sqlite3.connect("data\\InfinityCastle_db")
+                cur = db.cursor()
+                characteristics = player.characteristics
+                if characteristics["hp"] <= 0:
+                    cur.execute(f'UPDATE savings SET level = 1, coins = 0, '
+                                f'hp = 4, unlocked_hp = 4, '
+                                f'hp_cell = 15, all_hp = 60, '
+                                f'mana = 50, unlocked_mana = 50, '
+                                f'melee_power = 0, magic_power = 0, '
+                                f'protection = 0, critical_damage = 0, '
+                                f'melee_weapon = "usual_sword", magic_weapon = "usual_fireball" '
+                                f'WHERE Id = (SELECT Id FROM accounts WHERE nickname="{nickname}")')
+                else:
+                    cur.execute(f'UPDATE savings SET level = {level}, coins = {characteristics["coins"]}, '
+                                f'hp = {characteristics["hp"]}, unlocked_hp = {characteristics["unlocked_hp"]}, '
+                                f'hp_cell = {characteristics["hp_cell"]}, all_hp = {characteristics["all_hp"]}, '
+                                f'mana = {characteristics["mana"]}, unlocked_mana = {characteristics["unlocked_mana"]}, '
+                                f'melee_power = {characteristics["meele_power"]}, magic_power = {characteristics["magic_power"]}, '
+                                f'protection = {characteristics["protection"]}, critical_damage = {characteristics["critical_damage"]}, '
+                                f'melee_weapon = "{player.melee1["name"]}", magic_weapon = "{player.magic1["name"]}" '
+                                f'WHERE Id = (SELECT Id FROM accounts WHERE nickname="{nickname}")')
+                db.commit()
+                db.close()
                 pygame.quit()
                 os.system('python src/game.py')
                 sys.exit()
@@ -1164,9 +1197,9 @@ class Room():
             else:
                 if not self.flag:
                     Pricing(table_1.rect.x, table_1.rect.y, self.random_upgrade1, 'upgrades',
-                            upgrades[self.random_weapon]['cost'])
+                            upgrades[self.random_upgrade1]['cost'])
                     Pricing(table_2.rect.x, table_2.rect.y, self.random_upgrade2, 'upgrades',
-                            upgrades[self.random_magic]['cost'])
+                            upgrades[self.random_upgrade2]['cost'])
                     Pricing(table_3.rect.x, table_3.rect.y, self.random_potion, 'potions',
                             potions[self.random_potion]['cost'])
                     self.flag = True
@@ -1282,6 +1315,7 @@ class Monsters(pygame.sprite.Sprite):
 
     # Получение урона
     def check_damage(self):
+        global nickname
         chance_crit = 1
         if pygame.sprite.spritecollide(self, attack_group, False, pygame.sprite.collide_rect) and not CANMELEE:
             if not self.attacked:
@@ -1701,21 +1735,7 @@ def pause():
 
 
 def end():
-    global ending, nickname
-
-    db = sqlite3.connect("data\\InfinityCastle_db")
-    cur = db.cursor()
-    cur.execute(f'UPDATE savings SET level = 1, coins = 0, '
-                f'hp = 4, unlocked_hp = 4, '
-                f'hp_cell = 15, all_hp = 60, '
-                f'mana = 50, unlocked_mana = 50, '
-                f'melee_power = 0, magic_power = 0, '
-                f'protection = 0, critical_damage = 0, '
-                f'melee_weapon = "usual_sword", magic_weapon = "usual_fireball" '
-                f'WHERE Id = (SELECT Id FROM accounts WHERE nickname="{nickname}")')
-    db.commit()
-    db.close()
-
+    global ending
     ending = True
 
 
@@ -2049,7 +2069,7 @@ def start():
 
     # Cоздание переменной комнаты
     room = Room(map_list, room_number)
-
+    print(*map_list, sep='\n')
     # Курсор
     cursor_rect = pygame.Rect(280, 190, 1355, 660)
     cursor_x, cursor_y = cursor_rect.center
