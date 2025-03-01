@@ -80,7 +80,7 @@ class Button(pygame.sprite.Sprite):
             if self.button_type == 'game_start.png':
                 if NICKNAME:
                     pygame.quit()
-                    os.system('python src/game.py')
+                    os.system('python game.py')
                     sys.exit()
                 else:
                     account_login()
@@ -225,6 +225,17 @@ def achievenments():
     text = ['Ваши достижения:']
     text_coord_ending = 200
 
+    db = sqlite3.connect("data\\InfinityCastle_db")
+
+    cur = db.cursor()
+    data = cur.execute(f'SELECT * FROM achievenments WHERE Id = '
+                       f'(SELECT Id from accounts WHERE nickname="{NICKNAME}")')
+    info = data.fetchone()
+    names = list(map(lambda x: x[0], data.description))
+    for i in range(1, len(names)):
+        text.append(f'{names[i]}: {"Получено" if info[i] == 1 else "Не получено"}')
+    db.close()
+
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -238,7 +249,7 @@ def achievenments():
             intro_rect = string_rendered.get_rect()
             text_coord_ending += 10
             intro_rect.top = text_coord_ending
-            intro_rect.x = 400
+            intro_rect.x = 300
             text_coord_ending += intro_rect.height
             screen.blit(string_rendered, intro_rect)
         text_coord_ending = 200
@@ -406,7 +417,7 @@ def account_check(a, b, tip):
         if status:
             NICKNAME = a
             START = True
-            with open('src/account_info.txt', 'w+') as f:
+            with open('account_info.txt', 'w+') as f:
                 f.write(a)
             menu()
         else:
@@ -425,11 +436,13 @@ def account_check(a, b, tip):
                         f'protection, critical_damage, melee_weapon, magic_weapon) '
                         f'VALUES((SELECT Id FROM accounts WHERE nickname="{a}"), '
                         f'0, 0, 4, 4, 15, 60, 50, 50, 0, 0, 0, 0, "usual_sword", "usual_fireball")')
+            cur.execute(f'INSERT INTO achievenments(Id, first_monster, first_floor) '
+                        f'VALUES((SELECT Id FROM accounts WHERE nickname="{a}"), 0, 0)')
             db.commit()
             db.close()
             NICKNAME = a
             START = False
-            with open('src/account_info.txt', 'w+') as f:
+            with open('account_info.txt', 'w+') as f:
                 f.write(a)
             menu()
 
@@ -442,7 +455,7 @@ if __name__ == '__main__':
     # Активация приложения
     load_settings()
 
-    with open('src/account_info.txt') as f:
+    with open('account_info.txt') as f:
         f = str(f.readline()).strip()
         if f != '':
             NICKNAME = f
